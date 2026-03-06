@@ -1,6 +1,7 @@
 import streamlit as st
 import sqlite3
 import os
+from datetime import date
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -9,498 +10,481 @@ st.set_page_config(
     page_title="Kuna Capital | Bonos",
     page_icon="💚",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 # ---------------------------------------------------------------------------
-# CSS — Dark premium theme (Kuna Capital)
-# Outfit (headings) + Noto Sans (body)
-# Colors: bg #171D1C · card #2C3533 · green #1AC77C · navy #002236
+# CSS — Sidebar oscuro + contenido claro (igual que el screenshot de referencia)
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html, body, [class*="css"] {
-  font-family: 'Noto Sans', sans-serif;
-}
+html, body, [class*="css"] { font-family: 'Noto Sans', sans-serif; }
 
 /* ── Streamlit chrome ── */
 #MainMenu, footer, header { visibility: hidden; }
-.block-container { padding: 0 !important; max-width: 100% !important; }
-section[data-testid="stSidebar"] { display: none !important; }
+.block-container { padding: 1.5rem 2rem 2rem !important; max-width: 100% !important; }
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #1E2423; }
-::-webkit-scrollbar-thumb { background: #3A4542; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #1AC77C; }
+/* ══════════════════════════════════
+   SIDEBAR
+══════════════════════════════════ */
+section[data-testid="stSidebar"] {
+  background: #171D1C !important;
+  border-right: 1px solid #2C3533;
+  min-width: 220px !important;
+  max-width: 220px !important;
+}
+section[data-testid="stSidebar"] > div { padding: 0 !important; }
+[data-testid="stSidebarContent"] { padding: 0 !important; }
 
-/* ══════════════════════════════════════════
-   NAVBAR
-══════════════════════════════════════════ */
-.kc-nav {
-  background: #0F1512;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 40px;
+/* Logo block */
+.kc-sb-logo {
+  padding: 22px 20px 16px;
   border-bottom: 1px solid #2C3533;
-  position: sticky;
-  top: 0;
-  z-index: 999;
 }
-.kc-nav-logo {
+.kc-sb-logo .brand {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #E0E7E4;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
-.kc-nav-logo .pulse {
+.kc-sb-logo .brand .dot {
   width: 8px; height: 8px;
   background: #1AC77C;
   border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(26,199,124,0.2);
-  animation: pulse 2s infinite;
+  flex-shrink: 0;
 }
-@keyframes pulse {
-  0%,100% { box-shadow: 0 0 0 3px rgba(26,199,124,0.2); }
-  50%      { box-shadow: 0 0 0 6px rgba(26,199,124,0.05); }
-}
-.kc-nav-logo .wordmark {
-  font-family: 'Outfit', sans-serif;
-  font-size: 17px;
-  font-weight: 700;
-  color: #E0E7E4;
-  letter-spacing: 0.3px;
-}
-.kc-nav-logo .wordmark em {
-  color: #1AC77C;
-  font-style: normal;
-}
-.kc-nav-logo .sep {
-  width: 1px; height: 18px;
-  background: #3A4542;
-  margin: 0 10px;
-}
-.kc-nav-logo .module {
-  font-size: 11px;
-  color: #748C86;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  font-family: 'Noto Sans', sans-serif;
-}
-.kc-nav-right { display: flex; align-items: center; gap: 10px; }
-.kc-pill {
-  padding: 4px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 500;
-}
-.kc-pill-user {
-  background: rgba(26,199,124,0.08);
-  border: 1px solid rgba(26,199,124,0.2);
-  color: #1AC77C;
-}
-.kc-pill-admin {
-  background: #1AC77C;
-  color: #0F1512;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-/* ══════════════════════════════════════════
-   PAGE WRAPPER
-══════════════════════════════════════════ */
-.kc-page { max-width: 1180px; margin: 0 auto; padding: 36px 32px 60px; }
-
-/* ══════════════════════════════════════════
-   HERO BANNER
-══════════════════════════════════════════ */
-.kc-hero {
-  background: linear-gradient(135deg, #002236 0%, #00304C 100%);
-  border-radius: 16px;
-  padding: 36px 40px;
-  margin-bottom: 28px;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(26,199,124,0.15);
-}
-.kc-hero::before {
-  content: '';
-  position: absolute; top: -80px; right: -60px;
-  width: 260px; height: 260px;
-  background: radial-gradient(circle, rgba(26,199,124,0.12) 0%, transparent 70%);
-  border-radius: 50%;
-}
-.kc-hero::after {
-  content: '';
-  position: absolute; bottom: -100px; left: 30%;
-  width: 320px; height: 320px;
-  background: radial-gradient(circle, rgba(0,116,180,0.08) 0%, transparent 70%);
-  border-radius: 50%;
-}
-.kc-hero-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(26,199,124,0.12);
-  border: 1px solid rgba(26,199,124,0.25);
-  color: #1AC77C;
-  font-size: 11px;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  padding: 4px 12px;
-  border-radius: 8px;
-  margin-bottom: 14px;
-}
-.kc-hero h1 {
-  font-family: 'Outfit', sans-serif;
-  font-size: 28px;
-  font-weight: 700;
-  color: #FFFFFF;
-  margin-bottom: 6px;
-  position: relative;
-  z-index: 1;
-}
-.kc-hero h1 em { color: #1AC77C; font-style: normal; }
-.kc-hero p {
-  color: #748C86;
-  font-size: 14px;
-  position: relative;
-  z-index: 1;
-}
-
-/* ══════════════════════════════════════════
-   STAT CARDS
-══════════════════════════════════════════ */
-.kc-stat {
-  background: #2C3533;
-  border-radius: 14px;
-  padding: 22px 22px 20px;
-  border: 1px solid #3A4542;
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.2s;
-}
-.kc-stat:hover { border-color: rgba(26,199,124,0.4); }
-.kc-stat::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #1AC77C, #1DE08C);
-}
-.kc-stat .ico {
-  font-size: 20px;
-  margin-bottom: 12px;
-  display: block;
-}
-.kc-stat .lbl {
+.kc-sb-logo .brand em { color: #1AC77C; font-style: normal; }
+.kc-sb-logo .sub {
   font-size: 10px;
-  text-transform: uppercase;
+  color: #748C86;
   letter-spacing: 1.5px;
-  color: #748C86;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-.kc-stat .val {
-  font-family: 'Outfit', sans-serif;
-  font-size: 26px;
-  font-weight: 700;
-  color: #E0E7E4;
-  line-height: 1;
-}
-.kc-stat .sub {
-  font-size: 11px;
-  color: #748C86;
-  margin-top: 5px;
+  text-transform: uppercase;
+  margin-top: 3px;
+  padding-left: 16px;
 }
 
-/* ══════════════════════════════════════════
-   SECTION TITLE
-══════════════════════════════════════════ */
-.kc-stitle {
+/* User block */
+.kc-sb-user {
+  padding: 16px 20px;
+  border-bottom: 1px solid #2C3533;
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: 'Outfit', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #748C86;
-  margin: 28px 0 14px;
 }
-.kc-stitle::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: #2C3533;
-}
-.kc-stitle em { color: #1AC77C; font-style: normal; }
-
-/* ══════════════════════════════════════════
-   TABLE
-══════════════════════════════════════════ */
-.kc-tbl {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: 'Noto Sans', sans-serif;
-  font-size: 13px;
-  background: #2C3533;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid #3A4542;
-}
-.kc-tbl thead tr { background: #222926; }
-.kc-tbl th {
-  padding: 13px 18px;
-  text-align: left;
-  font-size: 10px;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  letter-spacing: 1.8px;
-  text-transform: uppercase;
-  color: #748C86;
-  border-bottom: 1px solid #3A4542;
-}
-.kc-tbl td {
-  padding: 14px 18px;
-  border-bottom: 1px solid #323D3A;
-  color: #C0CEC9;
-}
-.kc-tbl tr:last-child td { border-bottom: none; }
-.kc-tbl tbody tr:hover td {
-  background: rgba(26,199,124,0.04);
-  color: #E0E7E4;
-}
-.kc-val { font-weight: 600; color: #1AC77C !important; font-family: 'Outfit', sans-serif; }
-.kc-name { color: #E0E7E4 !important; font-weight: 500; }
-.kc-pw {
-  font-family: 'Courier New', monospace;
-  background: rgba(26,199,124,0.08);
-  border: 1px solid rgba(26,199,124,0.15);
-  color: #1AC77C;
-  padding: 3px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  letter-spacing: 0.5px;
-}
-
-/* ══════════════════════════════════════════
-   ALERTS
-══════════════════════════════════════════ */
-.kc-ok {
-  background: rgba(26,199,124,0.08);
-  border: 1px solid rgba(26,199,124,0.2);
-  border-left: 3px solid #1AC77C;
-  color: #1AC77C;
-  padding: 10px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  margin-bottom: 16px;
-}
-.kc-err {
-  background: rgba(220,50,50,0.06);
-  border: 1px solid rgba(220,50,50,0.15);
-  border-left: 3px solid #DC3232;
-  color: #FF7070;
-  padding: 10px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  margin-bottom: 16px;
-}
-.kc-empty {
-  text-align: center;
-  padding: 52px 20px;
-  color: #485856;
-  background: #2C3533;
-  border-radius: 14px;
-  border: 1px solid #3A4542;
-}
-.kc-empty .ico { font-size: 38px; display: block; margin-bottom: 12px; }
-.kc-empty p { font-size: 14px; color: #748C86; line-height: 1.6; }
-
-/* ══════════════════════════════════════════
-   LOGIN
-══════════════════════════════════════════ */
-.kc-login-outer {
-  min-height: 90vh;
+.kc-avatar {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, #1AC77C, #148152);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 16px;
-}
-.kc-login-card {
-  background: #2C3533;
-  border-radius: 20px;
-  border: 1px solid #3A4542;
-  padding: 52px 44px 40px;
-  width: 100%;
-  max-width: 400px;
-  position: relative;
-  overflow: hidden;
-}
-.kc-login-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #1AC77C, #1DE08C, rgba(26,199,124,0));
-}
-.kc-login-brand {
-  text-align: center;
-  margin-bottom: 36px;
-}
-.kc-login-brand .wordmark {
   font-family: 'Outfit', sans-serif;
-  font-size: 30px;
-  font-weight: 800;
-  color: #E0E7E4;
-  letter-spacing: 1px;
-  line-height: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F1512;
+  flex-shrink: 0;
 }
-.kc-login-brand .wordmark em { color: #1AC77C; font-style: normal; }
-.kc-login-brand .sub {
-  font-size: 10px;
+.kc-sb-user .info .name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #E0E7E4;
+  font-family: 'Outfit', sans-serif;
+}
+.kc-sb-user .info .role {
+  font-size: 11px;
+  color: #748C86;
+  margin-top: 1px;
+}
+
+/* Nav items */
+.kc-sb-nav { padding: 12px 0; }
+.kc-sb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  font-size: 13px;
   font-family: 'Outfit', sans-serif;
   font-weight: 500;
   color: #748C86;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  margin-top: 8px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.15s;
+  text-decoration: none;
+  border-left: 3px solid transparent;
 }
-.kc-login-brand .bar {
-  width: 32px; height: 2px;
-  background: #1AC77C;
-  border-radius: 1px;
-  margin: 12px auto 0;
+.kc-sb-item:hover { background: rgba(255,255,255,0.04); color: #E0E7E4; }
+.kc-sb-item.active {
+  background: rgba(26,199,124,0.08);
+  color: #1AC77C;
+  border-left: 3px solid #1AC77C;
+  font-weight: 600;
 }
-.kc-login-footer {
-  text-align: center;
-  color: #485856;
-  font-size: 11px;
-  margin-top: 20px;
-  font-family: 'Noto Sans', sans-serif;
-  letter-spacing: 0.3px;
+.kc-sb-item .ico { font-size: 15px; }
+
+/* Logout at bottom */
+.kc-sb-logout {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 16px 20px;
+  border-top: 1px solid #2C3533;
+}
+.kc-sb-logout a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #748C86;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  text-decoration: none;
+}
+.kc-sb-logout a:hover { color: #FF7070; }
+
+/* ══════════════════════════════════
+   MAIN CONTENT
+══════════════════════════════════ */
+.stApp { background: #F6F7F7; }
+.kc-page-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #171D1C;
+  margin-bottom: 2px;
+}
+.kc-page-sub {
+  font-size: 13px;
+  color: #748C86;
+  margin-bottom: 24px;
 }
 
-/* ══════════════════════════════════════════
-   STREAMLIT OVERRIDES
-══════════════════════════════════════════ */
-/* Buttons */
+/* ══════════════════════════════════
+   STAT CARDS (colored, like screenshot)
+══════════════════════════════════ */
+.kc-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.kc-scard {
+  border-radius: 12px;
+  padding: 20px 22px;
+  border: 1px solid transparent;
+}
+.kc-scard .num {
+  font-family: 'Outfit', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.kc-scard .label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Noto Sans', sans-serif;
+}
+.kc-scard .label .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+/* Colors */
+.sc-green  { background: #ECFDF5; border-color: #A7F3D0; }
+.sc-green  .num { color: #065F46; }
+.sc-green  .label { color: #047857; }
+.sc-green  .dot { background: #1AC77C; }
+
+.sc-yellow { background: #FFFBEB; border-color: #FDE68A; }
+.sc-yellow .num { color: #92400E; }
+.sc-yellow .label { color: #B45309; }
+.sc-yellow .dot { background: #F59E0B; }
+
+.sc-blue   { background: #EFF6FF; border-color: #BFDBFE; }
+.sc-blue   .num { color: #1E40AF; }
+.sc-blue   .label { color: #1D4ED8; }
+.sc-blue   .dot { background: #3B82F6; }
+
+.sc-red    { background: #FFF1F2; border-color: #FECDD3; }
+.sc-red    .num { color: #9F1239; }
+.sc-red    .label { color: #BE123C; }
+.sc-red    .dot { background: #F43F5E; }
+
+/* ══════════════════════════════════
+   SEARCH / FILTERS BAR
+══════════════════════════════════ */
+.kc-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+/* ══════════════════════════════════
+   BONO CARDS (like solicitudes list)
+══════════════════════════════════ */
+.kc-card-item {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  position: relative;
+}
+.kc-card-item:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  border-color: #C0CEC9;
+}
+.kc-card-item.highlighted { border-left: 3px solid #F59E0B; }
+.kc-card-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #065F46;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.kc-card-body { flex: 1; min-width: 0; }
+.kc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.kc-card-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #171D1C;
+}
+.kc-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Noto Sans', sans-serif;
+}
+.kc-tag-concept { background: #F3E8FF; color: #7C3AED; }
+.kc-tag-green   { background: #DCFCE7; color: #166534; }
+.kc-tag-yellow  { background: #FEF9C3; color: #854D0E; }
+.kc-tag-blue    { background: #DBEAFE; color: #1E40AF; }
+.kc-card-desc {
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kc-card-date { font-size: 12px; color: #9CA3AF; }
+.kc-card-amount {
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #065F46;
+  flex-shrink: 0;
+  align-self: center;
+}
+.kc-card-arrow {
+  color: #D1D5DB;
+  font-size: 16px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+/* Password badge */
+.kc-pw {
+  font-family: 'Courier New', monospace;
+  background: #F3E8FF;
+  border: 1px solid #DDD6FE;
+  color: #6D28D9;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+/* ══════════════════════════════════
+   ALERTS
+══════════════════════════════════ */
+.kc-ok {
+  background: #ECFDF5; border-left: 3px solid #1AC77C; color: #065F46;
+  padding: 10px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 14px;
+}
+.kc-err {
+  background: #FFF1F2; border-left: 3px solid #F43F5E; color: #9F1239;
+  padding: 10px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 14px;
+}
+.kc-empty {
+  background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px;
+  text-align: center; padding: 52px 20px; color: #9CA3AF;
+}
+.kc-empty .ico { font-size: 36px; display: block; margin-bottom: 10px; }
+
+/* ══════════════════════════════════
+   TOAST (bienvenida)
+══════════════════════════════════ */
+.kc-toast {
+  position: fixed;
+  top: 20px; right: 20px;
+  background: #1AC77C;
+  color: #0F1512;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(26,199,124,0.3);
+  z-index: 9999;
+  animation: slideIn 0.3s ease;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ══════════════════════════════════
+   LOGIN
+══════════════════════════════════ */
+.kc-login-wrap {
+  min-height: 90vh;
+  display: flex; align-items: center; justify-content: center;
+  background: #F6F7F7;
+}
+.kc-login-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  padding: 48px 44px 40px;
+  width: 100%; max-width: 400px;
+  position: relative; overflow: hidden;
+}
+.kc-login-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #1AC77C, #1DE08C);
+}
+.kc-login-logo {
+  text-align: center; margin-bottom: 32px;
+}
+.kc-login-logo .brand {
+  font-family: 'Outfit', sans-serif;
+  font-size: 26px; font-weight: 800; color: #171D1C;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.kc-login-logo .brand .dot {
+  width: 10px; height: 10px; background: #1AC77C; border-radius: 50%;
+}
+.kc-login-logo .brand em { color: #1AC77C; font-style: normal; }
+.kc-login-logo .sub {
+  font-size: 11px; color: #9CA3AF; letter-spacing: 2px;
+  text-transform: uppercase; margin-top: 6px;
+}
+/* Google button */
+.kc-google-btn {
+  width: 100%;
+  background: #fff;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 11px 16px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+  color: #374151; cursor: pointer; margin-bottom: 20px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.kc-google-btn:hover { border-color: #9CA3AF; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.kc-divider {
+  display: flex; align-items: center; gap: 10px;
+  color: #9CA3AF; font-size: 12px; margin-bottom: 20px;
+}
+.kc-divider::before, .kc-divider::after {
+  content: ''; flex: 1; height: 1px; background: #E5E7EB;
+}
+.kc-sso-info {
+  background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px;
+  padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: #92400E;
+  font-family: 'Noto Sans', sans-serif; line-height: 1.5;
+}
+
+/* ══════════════════════════════════
+   STREAMLIT BUTTONS & INPUTS
+══════════════════════════════════ */
 .stButton > button {
-  background: transparent !important;
-  color: #1AC77C !important;
-  border: 1.5px solid #1AC77C !important;
-  border-radius: 8px !important;
-  font-family: 'Outfit', sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-  letter-spacing: 0.3px !important;
-  padding: 8px 20px !important;
-  transition: all 0.15s ease !important;
+  background: #FFFFFF !important; color: #374151 !important;
+  border: 1.5px solid #E5E7EB !important; border-radius: 8px !important;
+  font-family: 'Outfit', sans-serif !important; font-weight: 600 !important;
+  font-size: 13px !important; transition: all 0.15s !important;
 }
 .stButton > button:hover {
-  background: #1AC77C !important;
-  color: #0F1512 !important;
+  border-color: #1AC77C !important; color: #065F46 !important;
+  box-shadow: 0 2px 8px rgba(26,199,124,0.15) !important;
 }
-
-/* Inputs */
 div[data-testid="stTextInput"] input,
-div[data-testid="stNumberInput"] input {
-  background: #222926 !important;
-  border: 1.5px solid #3A4542 !important;
-  border-radius: 8px !important;
-  color: #E0E7E4 !important;
+div[data-testid="stNumberInput"] input,
+div[data-testid="stDateInput"] input {
+  background: #F9FAFB !important; border: 1.5px solid #E5E7EB !important;
+  border-radius: 8px !important; color: #171D1C !important;
   font-family: 'Noto Sans', sans-serif !important;
-  font-size: 14px !important;
 }
-div[data-testid="stTextInput"] input:focus,
-div[data-testid="stNumberInput"] input:focus {
+div[data-testid="stTextInput"] input:focus {
   border-color: #1AC77C !important;
   box-shadow: 0 0 0 3px rgba(26,199,124,0.1) !important;
 }
-
-/* Date input */
-div[data-testid="stDateInput"] input {
-  background: #222926 !important;
-  border: 1.5px solid #3A4542 !important;
-  border-radius: 8px !important;
-  color: #E0E7E4 !important;
-}
-
-/* Selectbox */
 div[data-testid="stSelectbox"] > div > div {
-  background: #222926 !important;
-  border: 1.5px solid #3A4542 !important;
+  background: #F9FAFB !important; border: 1.5px solid #E5E7EB !important;
   border-radius: 8px !important;
-  color: #E0E7E4 !important;
 }
-
-/* Labels */
-label, .stTextInput label p, .stSelectbox label p,
-.stNumberInput label p, .stDateInput label p,
-[data-testid="stWidgetLabel"] p {
+label, [data-testid="stWidgetLabel"] p {
   font-family: 'Outfit', sans-serif !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 1px !important;
-  color: #748C86 !important;
+  font-size: 11px !important; font-weight: 600 !important;
+  text-transform: uppercase !important; letter-spacing: 0.8px !important;
+  color: #6B7280 !important;
 }
-
-/* Tabs */
-.stTabs [data-baseweb="tab-list"] {
-  background: transparent !important;
-  gap: 2px;
-  border-bottom: 1px solid #2C3533 !important;
-  padding-bottom: 0;
-}
-.stTabs [data-baseweb="tab"] {
-  background: transparent !important;
-  color: #748C86 !important;
-  font-family: 'Outfit', sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-  padding: 10px 22px !important;
-  border-radius: 8px 8px 0 0 !important;
-  letter-spacing: 0.3px !important;
-  border: none !important;
-}
-.stTabs [aria-selected="true"] {
-  background: rgba(26,199,124,0.1) !important;
-  color: #1AC77C !important;
-  border-bottom: 2px solid #1AC77C !important;
-}
-
-/* Expander */
+[data-testid="stForm"] { background: transparent !important; border: none !important; }
 div[data-testid="stExpander"] {
-  background: #2C3533 !important;
-  border: 1px solid #3A4542 !important;
-  border-radius: 12px !important;
-  margin-bottom: 12px !important;
+  background: #FFFFFF !important; border: 1.5px solid #E5E7EB !important;
+  border-radius: 12px !important; margin-bottom: 10px !important;
 }
 div[data-testid="stExpander"] summary {
   font-family: 'Outfit', sans-serif !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  color: #C0CEC9 !important;
+  font-size: 13px !important; font-weight: 600 !important; color: #374151 !important;
 }
-div[data-testid="stExpander"] summary:hover { color: #1AC77C !important; }
-
-/* Form border */
-[data-testid="stForm"] {
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+  background: transparent !important; border-bottom: 2px solid #E5E7EB !important; gap: 0;
+}
+.stTabs [data-baseweb="tab"] {
+  background: transparent !important; color: #9CA3AF !important;
+  font-family: 'Outfit', sans-serif !important; font-weight: 600 !important;
+  font-size: 13px !important; padding: 10px 22px !important; border-radius: 0 !important;
+}
+.stTabs [aria-selected="true"] {
+  color: #1AC77C !important; border-bottom: 2px solid #1AC77C !important;
   background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -516,28 +500,20 @@ def get_db():
     return conn
 
 def init_db():
-    conn = get_db()
-    c = conn.cursor()
+    conn = get_db(); c = conn.cursor()
     c.execute("""CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        nombre TEXT NOT NULL,
-        rol TEXT NOT NULL DEFAULT 'usuario'
-    )""")
+        username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
+        nombre TEXT NOT NULL, rol TEXT NOT NULL DEFAULT 'usuario')""")
     c.execute("""CREATE TABLE IF NOT EXISTS bonos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario_id INTEGER NOT NULL,
-        concepto TEXT NOT NULL,
-        monto REAL NOT NULL,
-        periodo TEXT NOT NULL,
-        fecha TEXT NOT NULL,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-    )""")
+        usuario_id INTEGER NOT NULL, concepto TEXT NOT NULL,
+        monto REAL NOT NULL, periodo TEXT NOT NULL, fecha TEXT NOT NULL,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id))""")
     c.execute("SELECT id FROM usuarios WHERE username='admin'")
     if not c.fetchone():
-        c.execute("INSERT INTO usuarios (username,password,nombre,rol) VALUES(?,?,?,?)",
-                  ("admin","admin123","Administrador","admin"))
+        c.execute("INSERT INTO usuarios(username,password,nombre,rol) VALUES(?,?,?,?)",
+                  ("admin","admin123","Admin Kuna","admin"))
     conn.commit(); conn.close()
 
 init_db()
@@ -545,8 +521,9 @@ init_db()
 # ---------------------------------------------------------------------------
 # Session state
 # ---------------------------------------------------------------------------
-for k, v in dict(logged_in=False, user_id=None, username="",
-                 nombre="", rol="", msg=None, login_err="").items():
+for k, v in dict(logged_in=False, user_id=None, username="", nombre="",
+                 rol="", msg=None, login_err="", page="main",
+                 show_toast=False, show_sso_info=False).items():
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -554,42 +531,111 @@ def logout():
     for k in list(st.session_state.keys()): del st.session_state[k]
     st.rerun()
 
+def initials(name):
+    parts = name.strip().split()
+    return (parts[0][0] + parts[-1][0]).upper() if len(parts) > 1 else parts[0][:2].upper()
+
 # ---------------------------------------------------------------------------
-# Navbar
+# SIDEBAR
 # ---------------------------------------------------------------------------
-def navbar():
-    right = ""
-    if st.session_state.logged_in:
-        cls = "kc-pill-admin" if st.session_state.rol == "admin" else "kc-pill-user"
-        tag = "ADMIN" if st.session_state.rol == "admin" else "USUARIO"
-        right = f'<span class="kc-pill kc-pill-user" style="margin-right:4px">👤 {st.session_state.nombre}</span><span class="kc-pill {cls}">{tag}</span>'
-    st.markdown(f"""
-    <div class="kc-nav">
-      <div class="kc-nav-logo">
-        <div class="pulse"></div>
-        <span class="wordmark">KUNA <em>CAPITAL</em></span>
-        <div class="sep"></div>
-        <span class="module">Portal de Bonos</span>
-      </div>
-      <div class="kc-nav-right">{right}</div>
-    </div>""", unsafe_allow_html=True)
+def render_sidebar():
+    with st.sidebar:
+        # Logo
+        st.markdown("""
+        <div class="kc-sb-logo">
+          <div class="brand">
+            <div class="dot"></div>
+            <span>kuna <em>capital</em></span>
+          </div>
+          <div class="sub">Portal de Bonos</div>
+        </div>""", unsafe_allow_html=True)
+
+        # User info
+        ini = initials(st.session_state.nombre)
+        role_lbl = "Administrador" if st.session_state.rol == "admin" else "Colaborador"
+        st.markdown(f"""
+        <div class="kc-sb-user">
+          <div class="kc-avatar">{ini}</div>
+          <div class="info">
+            <div class="name">{st.session_state.nombre}</div>
+            <div class="role">{role_lbl}</div>
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+        st.markdown('<div class="kc-sb-nav">', unsafe_allow_html=True)
+
+        # Nav items
+        if st.session_state.rol == "admin":
+            pages = [
+                ("main",      "📋", "Panel de Bonos"),
+                ("usuarios",  "👥", "Gestión de Usuarios"),
+            ]
+        else:
+            pages = [("main", "💚", "Mis Bonos")]
+
+        for key, ico, label in pages:
+            active = "active" if st.session_state.page == key else ""
+            if st.button(f"{ico}  {label}", key=f"nav_{key}",
+                         use_container_width=True):
+                st.session_state.page = key
+                st.rerun()
+            # Inject active style via JS hack — use markdown overlay
+            st.markdown(f"""
+            <style>
+            div[data-testid="stSidebar"] button[kind="secondary"]:nth-of-type({pages.index((key,ico,label))+1}) {{
+              background: {"rgba(26,199,124,0.08)" if active else "transparent"} !important;
+              color: {"#1AC77C" if active else "#748C86"} !important;
+              border: none !important;
+              border-left: 3px solid {"#1AC77C" if active else "transparent"} !important;
+              border-radius: 0 !important;
+              text-align: left !important;
+              padding: 10px 20px !important;
+              font-family: 'Outfit', sans-serif !important;
+              font-size: 13px !important;
+              font-weight: {"600" if active else "500"} !important;
+            }}
+            </style>""", unsafe_allow_html=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("<br>" * 6, unsafe_allow_html=True)
+
+        # Logout
+        if st.button("↩  Cerrar Sesión", use_container_width=True, key="logout_btn"):
+            logout()
 
 # ---------------------------------------------------------------------------
 # LOGIN
 # ---------------------------------------------------------------------------
 def view_login():
-    navbar()
     _, col, _ = st.columns([1, 1.1, 1])
     with col:
-        st.markdown('<div style="height:48px"></div>', unsafe_allow_html=True)
+        st.markdown("<div style='height:48px'></div>", unsafe_allow_html=True)
+
+        # Google SSO info banner
+        if st.session_state.show_sso_info:
+            st.markdown("""
+            <div class="kc-sso-info">
+              ⚙️ <strong>Google SSO requiere configuración:</strong><br>
+              Necesitas un proyecto en Google Cloud Console con OAuth 2.0 habilitado.
+              La integración toma ~2 horas. Pide las credenciales a tu equipo de IT
+              o crea un proyecto en <strong>console.cloud.google.com</strong>.
+            </div>""", unsafe_allow_html=True)
+
         st.markdown("""
         <div class="kc-login-card">
-          <div class="kc-login-brand">
-            <div class="wordmark">KUNA <em>CAPITAL</em></div>
+          <div class="kc-login-logo">
+            <div class="brand"><div class="dot"></div>kuna <em>capital</em></div>
             <div class="sub">Portal de Bonos</div>
-            <div class="bar"></div>
           </div>
         </div>""", unsafe_allow_html=True)
+
+        # Google SSO button (mock — para evaluación visual)
+        if st.button("🔵  Continuar con Google", use_container_width=True, key="google_btn"):
+            st.session_state.show_sso_info = True
+            st.rerun()
+
+        st.markdown('<div class="kc-divider">o inicia sesión con tu cuenta</div>',
+                    unsafe_allow_html=True)
 
         if st.session_state.login_err:
             st.markdown(f'<div class="kc-err">⚠ {st.session_state.login_err}</div>',
@@ -604,104 +650,28 @@ def view_login():
 
         if ok:
             conn = get_db()
-            row = conn.execute("SELECT * FROM usuarios WHERE username=? AND password=?",
-                               (user.strip(), pwd.strip())).fetchone()
+            row  = conn.execute("SELECT * FROM usuarios WHERE username=? AND password=?",
+                                (user.strip(), pwd.strip())).fetchone()
             conn.close()
             if row:
                 st.session_state.update(logged_in=True, user_id=row["id"],
-                    username=row["username"], nombre=row["nombre"], rol=row["rol"])
+                    username=row["username"], nombre=row["nombre"],
+                    rol=row["rol"], page="main", show_toast=True)
                 st.rerun()
             else:
                 st.session_state.login_err = "Usuario o contraseña incorrectos."
                 st.rerun()
 
-        st.markdown('<p class="kc-login-footer">Acceso restringido · Solo personal autorizado</p>',
-                    unsafe_allow_html=True)
+        st.markdown("""
+        <p style="text-align:center;color:#9CA3AF;font-size:11px;margin-top:18px;
+                  font-family:'Noto Sans',sans-serif;">
+          Acceso restringido · Solo personal autorizado
+        </p>""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# USUARIO
+# PANEL DE BONOS (admin)
 # ---------------------------------------------------------------------------
-def view_usuario():
-    navbar()
-    st.markdown('<div class="kc-page">', unsafe_allow_html=True)
-
-    conn  = get_db()
-    bonos = conn.execute(
-        "SELECT * FROM bonos WHERE usuario_id=? ORDER BY fecha DESC",
-        (st.session_state.user_id,)).fetchall()
-    conn.close()
-
-    total  = len(bonos)
-    monto  = sum(b["monto"] for b in bonos)
-    ult_m  = bonos[0]["monto"] if bonos else 0
-    ult_p  = bonos[0]["periodo"] if bonos else "—"
-
-    # Hero
-    st.markdown(f"""
-    <div class="kc-hero">
-      <div class="kc-hero-tag">
-        <span>●</span> Mi portal
-      </div>
-      <h1>Hola, <em>{st.session_state.nombre}</em> 👋</h1>
-      <p>Aqui puedes consultar todos tus bonos registrados en Kuna Capital.</p>
-    </div>""", unsafe_allow_html=True)
-
-    # Stats
-    c1, c2, c3, c_btn = st.columns([1, 1, 1, 0.55])
-    with c1:
-        st.markdown(f"""<div class="kc-stat">
-          <span class="ico">🧾</span>
-          <div class="lbl">Bonos registrados</div>
-          <div class="val">{total}</div>
-        </div>""", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""<div class="kc-stat">
-          <span class="ico">💰</span>
-          <div class="lbl">Monto acumulado</div>
-          <div class="val">${monto:,.2f}</div>
-        </div>""", unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"""<div class="kc-stat">
-          <span class="ico">📅</span>
-          <div class="lbl">Ultimo bono</div>
-          <div class="val">${ult_m:,.2f}</div>
-          <div class="sub">{ult_p}</div>
-        </div>""", unsafe_allow_html=True)
-    with c_btn:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        if st.button("Cerrar sesion", use_container_width=True):
-            logout()
-
-    # Tabla
-    st.markdown('<div class="kc-stitle"><em>MIS</em> BONOS</div>', unsafe_allow_html=True)
-
-    if bonos:
-        rows = "".join(f"""<tr>
-          <td style="color:#748C86;font-size:12px">{i+1}</td>
-          <td class="kc-name">{b['concepto']}</td>
-          <td>{b['periodo']}</td>
-          <td>{b['fecha']}</td>
-          <td class="kc-val">${b['monto']:,.2f}</td>
-        </tr>""" for i, b in enumerate(bonos))
-        st.markdown(f"""<table class="kc-tbl">
-          <thead><tr><th>#</th><th>Concepto</th><th>Periodo</th><th>Fecha</th><th>Monto</th></tr></thead>
-          <tbody>{rows}</tbody>
-        </table>""", unsafe_allow_html=True)
-    else:
-        st.markdown("""<div class="kc-empty">
-          <span class="ico">📋</span>
-          <p>No tienes bonos registrados aun.<br>Contacta a tu administrador.</p>
-        </div>""", unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------------------------------------------------------------------
-# ADMIN
-# ---------------------------------------------------------------------------
-def view_admin():
-    navbar()
-    st.markdown('<div class="kc-page">', unsafe_allow_html=True)
-
+def view_admin_bonos():
     conn     = get_db()
     usuarios = conn.execute("SELECT * FROM usuarios WHERE rol='usuario' ORDER BY nombre").fetchall()
     bonos    = conn.execute("""
@@ -710,164 +680,260 @@ def view_admin():
         ORDER BY b.fecha DESC""").fetchall()
     conn.close()
 
-    # Hero + logout
-    hcol, bcol = st.columns([5, 0.8])
-    with hcol:
-        st.markdown("""<div class="kc-hero">
-          <div class="kc-hero-tag"><span>⚙</span> Administrador</div>
-          <h1>Panel de <em>Administracion</em></h1>
-          <p>Gestiona usuarios, asigna bonos y consulta credenciales.</p>
-        </div>""", unsafe_allow_html=True)
-    with bcol:
-        st.markdown("<br><br><br><br>", unsafe_allow_html=True)
-        if st.button("Cerrar sesion", use_container_width=True):
-            logout()
+    total_u = len(usuarios)
+    total_b = len(bonos)
+    monto_t = sum(b["monto"] for b in bonos)
+    prom    = monto_t / total_u if total_u else 0
 
-    # Flash messages
+    # Flash
     if st.session_state.msg:
-        txt, t = st.session_state.msg
+        t, txt = st.session_state.msg
         st.markdown(f'<div class="{"kc-ok" if t=="s" else "kc-err"}">{"✓" if t=="s" else "✗"} {txt}</div>',
                     unsafe_allow_html=True)
         st.session_state.msg = None
 
-    tab_u, tab_b = st.tabs(["  👥  Usuarios  ", "  💰  Bonos  "])
+    # Title
+    sub = f"{total_b} bonos registrados"
+    st.markdown(f'<div class="kc-page-title">Panel de Bonos</div>'
+                f'<div class="kc-page-sub">{sub}</div>', unsafe_allow_html=True)
 
-    # ── USUARIOS ──────────────────────────────────────────────────────────────
-    with tab_u:
-        st.markdown("<br>", unsafe_allow_html=True)
+    # Stat cards
+    st.markdown(f"""
+    <div class="kc-stat-grid">
+      <div class="kc-scard sc-green">
+        <div class="num">{total_b}</div>
+        <div class="label"><span class="dot"></span>Bonos registrados</div>
+      </div>
+      <div class="kc-scard sc-blue">
+        <div class="num">{total_u}</div>
+        <div class="label"><span class="dot"></span>Colaboradores</div>
+      </div>
+      <div class="kc-scard sc-yellow">
+        <div class="num">${monto_t:,.0f}</div>
+        <div class="label"><span class="dot"></span>Monto total</div>
+      </div>
+      <div class="kc-scard sc-red">
+        <div class="num">${prom:,.0f}</div>
+        <div class="label"><span class="dot"></span>Promedio por colaborador</div>
+      </div>
+    </div>""", unsafe_allow_html=True)
 
-        with st.expander("➕  Agregar nuevo usuario", expanded=True):
-            with st.form("add_u", clear_on_submit=True):
-                c1, c2, c3 = st.columns(3)
-                with c1: nombre   = st.text_input("Nombre completo", placeholder="Ana Lopez")
-                with c2: username = st.text_input("Username", placeholder="alopez")
-                with c3: password = st.text_input("Contraseña", placeholder="••••••••")
-                if st.form_submit_button("Crear usuario →"):
-                    if not all([nombre.strip(), username.strip(), password.strip()]):
-                        st.session_state.msg = ("Todos los campos son obligatorios.", "e")
+    # Agregar bono
+    with st.expander("➕  Asignar bono a un usuario", expanded=False):
+        if usuarios:
+            with st.form("add_b", clear_on_submit=True):
+                c1, c2 = st.columns(2)
+                with c1:
+                    umap = {f"{u['nombre']}  ({u['username']})": u["id"] for u in usuarios}
+                    su   = st.selectbox("Usuario", list(umap.keys()))
+                    con  = st.text_input("Concepto", placeholder="Bono de desempeno Q1 2025")
+                with c2:
+                    mon = st.number_input("Monto ($)", min_value=0.0, step=500.0, format="%.2f")
+                    per = st.text_input("Periodo", placeholder="Q1 2025")
+                    fec = st.date_input("Fecha", value=date.today())
+                if st.form_submit_button("Asignar bono →"):
+                    if not con.strip() or not per.strip():
+                        st.session_state.msg = ("e", "Concepto y periodo son obligatorios.")
                     else:
-                        try:
-                            conn = get_db()
-                            conn.execute("INSERT INTO usuarios(username,password,nombre,rol) VALUES(?,?,?,'usuario')",
-                                         (username.strip(), password.strip(), nombre.strip()))
-                            conn.commit(); conn.close()
-                            st.session_state.msg = (f"Usuario '{nombre.strip()}' creado exitosamente.", "s")
-                        except sqlite3.IntegrityError:
-                            st.session_state.msg = (f"El username '{username.strip()}' ya existe.", "e")
-                    st.rerun()
-
-        st.markdown('<div class="kc-stitle"><em>USUARIOS</em> REGISTRADOS — CONTRASEÑAS VISIBLES</div>',
-                    unsafe_allow_html=True)
-
-        if usuarios:
-            rows = "".join(f"""<tr>
-              <td style="color:#748C86;font-size:12px">{u['id']}</td>
-              <td class="kc-name">{u['nombre']}</td>
-              <td style="color:#C0CEC9">{u['username']}</td>
-              <td><span class="kc-pw">{u['password']}</span></td>
-            </tr>""" for u in usuarios)
-            st.markdown(f"""<table class="kc-tbl">
-              <thead><tr><th>ID</th><th>Nombre</th><th>Username</th><th>Contraseña</th></tr></thead>
-              <tbody>{rows}</tbody>
-            </table>""", unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            with st.expander("✏️  Editar / eliminar usuario"):
-                opts = {f"{u['nombre']}  ({u['username']})": u for u in usuarios}
-                sel  = st.selectbox("Seleccionar", list(opts.keys()), key="eu")
-                u    = opts[sel]
-                ec, dc = st.columns([2, 1])
-                with ec:
-                    with st.form("edit_u"):
-                        nn = st.text_input("Nombre", value=u["nombre"])
-                        np = st.text_input("Contraseña", value=u["password"])
-                        if st.form_submit_button("Guardar cambios"):
-                            conn = get_db()
-                            conn.execute("UPDATE usuarios SET nombre=?,password=? WHERE id=?", (nn, np, u["id"]))
-                            conn.commit(); conn.close()
-                            st.session_state.msg = ("Usuario actualizado.", "s")
-                            st.rerun()
-                with dc:
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    if st.button(f"Eliminar '{u['nombre']}'", type="primary"):
                         conn = get_db()
-                        conn.execute("DELETE FROM bonos WHERE usuario_id=?", (u["id"],))
-                        conn.execute("DELETE FROM usuarios WHERE id=?", (u["id"],))
+                        conn.execute("INSERT INTO bonos(usuario_id,concepto,monto,periodo,fecha) VALUES(?,?,?,?,?)",
+                                     (umap[su], con.strip(), mon, per.strip(), str(fec)))
                         conn.commit(); conn.close()
-                        st.session_state.msg = (f"'{u['nombre']}' eliminado.", "s")
-                        st.rerun()
-        else:
-            st.markdown('<div class="kc-empty"><span class="ico">👥</span><p>No hay usuarios aun.</p></div>',
-                        unsafe_allow_html=True)
-
-    # ── BONOS ─────────────────────────────────────────────────────────────────
-    with tab_b:
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        if usuarios:
-            with st.expander("➕  Asignar bono a un usuario", expanded=True):
-                with st.form("add_b", clear_on_submit=True):
-                    r1, r2 = st.columns(2)
-                    with r1:
-                        umap = {f"{u['nombre']}  ({u['username']})": u["id"] for u in usuarios}
-                        su   = st.selectbox("Usuario", list(umap.keys()))
-                        con  = st.text_input("Concepto", placeholder="Bono de desempeno Q1 2025")
-                    with r2:
-                        mon  = st.number_input("Monto ($)", min_value=0.0, step=500.0, format="%.2f")
-                        per  = st.text_input("Periodo", placeholder="Q1 2025")
-                        fec  = st.date_input("Fecha")
-                    if st.form_submit_button("Asignar bono →"):
-                        if not con.strip() or not per.strip():
-                            st.session_state.msg = ("Concepto y periodo son obligatorios.", "e")
-                        else:
-                            conn = get_db()
-                            conn.execute("INSERT INTO bonos(usuario_id,concepto,monto,periodo,fecha) VALUES(?,?,?,?,?)",
-                                         (umap[su], con.strip(), mon, per.strip(), str(fec)))
-                            conn.commit(); conn.close()
-                            st.session_state.msg = ("Bono asignado exitosamente.", "s")
-                        st.rerun()
-        else:
-            st.markdown('<div class="kc-empty"><span class="ico">👥</span><p>Primero agrega usuarios.</p></div>',
-                        unsafe_allow_html=True)
-
-        st.markdown('<div class="kc-stitle">TODOS LOS <em>BONOS</em></div>', unsafe_allow_html=True)
-
-        if bonos:
-            rows = "".join(f"""<tr>
-              <td style="color:#748C86;font-size:12px">{b['id']}</td>
-              <td class="kc-name">{b['nu']}</td>
-              <td style="color:#C0CEC9">{b['concepto']}</td>
-              <td>{b['periodo']}</td>
-              <td>{b['fecha']}</td>
-              <td class="kc-val">${b['monto']:,.2f}</td>
-            </tr>""" for b in bonos)
-            st.markdown(f"""<table class="kc-tbl">
-              <thead><tr><th>ID</th><th>Usuario</th><th>Concepto</th><th>Periodo</th><th>Fecha</th><th>Monto</th></tr></thead>
-              <tbody>{rows}</tbody>
-            </table>""", unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            with st.expander("🗑️  Eliminar bono"):
-                bopts = {f"#{b['id']} — {b['nu']} · {b['concepto']} · ${b['monto']:,.2f}": b["id"] for b in bonos}
-                sb    = st.selectbox("Seleccionar bono", list(bopts.keys()), key="db")
-                if st.button("Eliminar bono seleccionado", type="primary"):
-                    conn = get_db()
-                    conn.execute("DELETE FROM bonos WHERE id=?", (bopts[sb],))
-                    conn.commit(); conn.close()
-                    st.session_state.msg = ("Bono eliminado.", "s")
+                        st.session_state.msg = ("s", "Bono asignado exitosamente.")
                     st.rerun()
         else:
-            st.markdown('<div class="kc-empty"><span class="ico">💰</span><p>No hay bonos registrados aun.</p></div>',
-                        unsafe_allow_html=True)
+            st.info("Primero agrega usuarios en la sección Gestión de Usuarios.")
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Lista de bonos como cards
+    if bonos:
+        # Eliminar bono
+        with st.expander("🗑️  Eliminar bono"):
+            bopts = {f"#{b['id']} — {b['nu']} · {b['concepto']} · ${b['monto']:,.2f}": b["id"] for b in bonos}
+            sb    = st.selectbox("Seleccionar bono a eliminar", list(bopts.keys()), key="db")
+            if st.button("Confirmar eliminación", key="del_b"):
+                conn = get_db()
+                conn.execute("DELETE FROM bonos WHERE id=?", (bopts[sb],))
+                conn.commit(); conn.close()
+                st.session_state.msg = ("s", "Bono eliminado.")
+                st.rerun()
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        for b in bonos:
+            ini = initials(b["nu"])
+            st.markdown(f"""
+            <div class="kc-card-item">
+              <div class="kc-card-avatar">{ini}</div>
+              <div class="kc-card-body">
+                <div class="kc-card-header">
+                  <span class="kc-card-name">{b['nu']}</span>
+                  <span class="kc-tag kc-tag-concept">{b['concepto']}</span>
+                  <span class="kc-tag kc-tag-green">● Registrado</span>
+                </div>
+                <div class="kc-card-desc">Periodo: {b['periodo']}</div>
+                <div class="kc-card-date">{b['fecha']}</div>
+              </div>
+              <div class="kc-card-amount">${b['monto']:,.2f}</div>
+              <div class="kc-card-arrow">›</div>
+            </div>""", unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="kc-empty"><span class="ico">💰</span>'
+                    '<p>No hay bonos registrados aun.</p></div>', unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# GESTIÓN DE USUARIOS (admin)
+# ---------------------------------------------------------------------------
+def view_admin_usuarios():
+    conn     = get_db()
+    usuarios = conn.execute("SELECT * FROM usuarios WHERE rol='usuario' ORDER BY nombre").fetchall()
+    conn.close()
+
+    if st.session_state.msg:
+        t, txt = st.session_state.msg
+        st.markdown(f'<div class="{"kc-ok" if t=="s" else "kc-err"}">{"✓" if t=="s" else "✗"} {txt}</div>',
+                    unsafe_allow_html=True)
+        st.session_state.msg = None
+
+    st.markdown(f'<div class="kc-page-title">Gestión de Usuarios</div>'
+                f'<div class="kc-page-sub">{len(usuarios)} colaboradores registrados</div>',
+                unsafe_allow_html=True)
+
+    with st.expander("➕  Agregar nuevo usuario", expanded=True):
+        with st.form("add_u", clear_on_submit=True):
+            c1, c2, c3 = st.columns(3)
+            with c1: nombre   = st.text_input("Nombre completo", placeholder="Ana Lopez")
+            with c2: username = st.text_input("Username", placeholder="alopez")
+            with c3: password = st.text_input("Contraseña", placeholder="••••••••")
+            if st.form_submit_button("Crear usuario →"):
+                if not all([nombre.strip(), username.strip(), password.strip()]):
+                    st.session_state.msg = ("e", "Todos los campos son obligatorios.")
+                else:
+                    try:
+                        conn = get_db()
+                        conn.execute("INSERT INTO usuarios(username,password,nombre,rol) VALUES(?,?,?,'usuario')",
+                                     (username.strip(), password.strip(), nombre.strip()))
+                        conn.commit(); conn.close()
+                        st.session_state.msg = ("s", f"Usuario '{nombre.strip()}' creado.")
+                    except sqlite3.IntegrityError:
+                        st.session_state.msg = ("e", f"El username '{username.strip()}' ya existe.")
+                st.rerun()
+
+    if usuarios:
+        with st.expander("✏️  Editar / eliminar usuario"):
+            opts = {f"{u['nombre']}  ({u['username']})": u for u in usuarios}
+            sel  = st.selectbox("Seleccionar usuario", list(opts.keys()), key="eu")
+            u    = opts[sel]
+            ec, dc = st.columns([2, 1])
+            with ec:
+                with st.form("edit_u"):
+                    nn = st.text_input("Nombre", value=u["nombre"])
+                    np = st.text_input("Contraseña", value=u["password"])
+                    if st.form_submit_button("Guardar cambios"):
+                        conn = get_db()
+                        conn.execute("UPDATE usuarios SET nombre=?,password=? WHERE id=?", (nn, np, u["id"]))
+                        conn.commit(); conn.close()
+                        st.session_state.msg = ("s", "Usuario actualizado.")
+                        st.rerun()
+            with dc:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button(f"Eliminar '{u['nombre']}'", type="primary"):
+                    conn = get_db()
+                    conn.execute("DELETE FROM bonos WHERE usuario_id=?", (u["id"],))
+                    conn.execute("DELETE FROM usuarios WHERE id=?", (u["id"],))
+                    conn.commit(); conn.close()
+                    st.session_state.msg = ("s", f"'{u['nombre']}' eliminado.")
+                    st.rerun()
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        for u in usuarios:
+            ini = initials(u["nombre"])
+            st.markdown(f"""
+            <div class="kc-card-item">
+              <div class="kc-card-avatar">{ini}</div>
+              <div class="kc-card-body">
+                <div class="kc-card-header">
+                  <span class="kc-card-name">{u['nombre']}</span>
+                  <span class="kc-tag kc-tag-blue">@{u['username']}</span>
+                </div>
+                <div class="kc-card-desc">Contraseña: <span class="kc-pw">{u['password']}</span></div>
+              </div>
+              <div class="kc-card-arrow">›</div>
+            </div>""", unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="kc-empty"><span class="ico">👥</span>'
+                    '<p>No hay usuarios registrados aun.</p></div>', unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# MIS BONOS (usuario)
+# ---------------------------------------------------------------------------
+def view_user_bonos():
+    conn  = get_db()
+    bonos = conn.execute("SELECT * FROM bonos WHERE usuario_id=? ORDER BY fecha DESC",
+                         (st.session_state.user_id,)).fetchall()
+    conn.close()
+
+    total  = len(bonos)
+    monto  = sum(b["monto"] for b in bonos)
+    ult_m  = bonos[0]["monto"] if bonos else 0
+    ult_p  = bonos[0]["periodo"] if bonos else "—"
+
+    st.markdown(f'<div class="kc-page-title">Mis Bonos</div>'
+                f'<div class="kc-page-sub">{total} bonos registrados a tu nombre</div>',
+                unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="kc-stat-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kc-scard sc-green">
+        <div class="num">{total}</div>
+        <div class="label"><span class="dot"></span>Bonos registrados</div>
+      </div>
+      <div class="kc-scard sc-blue">
+        <div class="num">${monto:,.2f}</div>
+        <div class="label"><span class="dot"></span>Monto acumulado</div>
+      </div>
+      <div class="kc-scard sc-yellow">
+        <div class="num">${ult_m:,.2f}</div>
+        <div class="label"><span class="dot"></span>Último bono · {ult_p}</div>
+      </div>
+    </div>""", unsafe_allow_html=True)
+
+    if bonos:
+        for b in bonos:
+            st.markdown(f"""
+            <div class="kc-card-item">
+              <div class="kc-card-avatar">💚</div>
+              <div class="kc-card-body">
+                <div class="kc-card-header">
+                  <span class="kc-card-name">{b['concepto']}</span>
+                  <span class="kc-tag kc-tag-yellow">{b['periodo']}</span>
+                  <span class="kc-tag kc-tag-green">● Registrado</span>
+                </div>
+                <div class="kc-card-date">{b['fecha']}</div>
+              </div>
+              <div class="kc-card-amount">${b['monto']:,.2f}</div>
+            </div>""", unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="kc-empty"><span class="ico">📋</span>'
+                    '<p>No tienes bonos registrados aun.<br>Contacta a tu administrador.</p>'
+                    '</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # Router
 # ---------------------------------------------------------------------------
 if not st.session_state.logged_in:
     view_login()
-elif st.session_state.rol == "admin":
-    view_admin()
 else:
-    view_usuario()
+    # Toast de bienvenida
+    if st.session_state.show_toast:
+        st.markdown(f'<div class="kc-toast">✓ Bienvenido(a), {st.session_state.nombre}</div>',
+                    unsafe_allow_html=True)
+        st.session_state.show_toast = False
+
+    render_sidebar()
+
+    if st.session_state.rol == "admin":
+        if st.session_state.page == "usuarios":
+            view_admin_usuarios()
+        else:
+            view_admin_bonos()
+    else:
+        view_user_bonos()
