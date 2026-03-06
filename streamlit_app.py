@@ -26,6 +26,7 @@ html, body, [class*="css"] { font-family: 'Noto Sans', sans-serif; }
 /* ── Streamlit chrome ── */
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding: 1.5rem 2rem 2rem !important; max-width: 100% !important; }
+/* Sidebar oculto por defecto — se muestra solo al loguearse vía CSS en view_login */
 
 /* ══════════════════════════════════
    SIDEBAR
@@ -367,63 +368,110 @@ section[data-testid="stSidebar"] > div { padding: 0 !important; }
 }
 
 /* ══════════════════════════════════
-   LOGIN
+   LOGIN — full dark navy page
 ══════════════════════════════════ */
-.kc-login-wrap {
-  min-height: 90vh;
-  display: flex; align-items: center; justify-content: center;
-  background: #F6F7F7;
+
+/* Cuando no hay sidebar (login), ocultar el toggle y forzar fondo */
+section[data-testid="stSidebar"] { display: none !important; }
+.stApp[data-page="login"],
+body:has(.kc-login-page) {
+  background: #0D1E35 !important;
+}
+.kc-login-page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #0A1628 0%, #0D1E35 50%, #0A2240 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  margin: -1.5rem -2rem;
+}
+/* Override Streamlit's block-container bg on login */
+.kc-login-page ~ div, .kc-login-bg-override {
+  background: #0D1E35 !important;
+}
+.kc-login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.kc-login-header .kuna-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.kc-login-header .kuna-logo .kuna-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.5px;
+}
+.kc-login-header .kuna-sub {
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 14px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.3px;
 }
 .kc-login-card {
   background: #FFFFFF;
-  border-radius: 18px;
-  border: 1px solid #E5E7EB;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-  padding: 48px 44px 40px;
-  width: 100%; max-width: 400px;
-  position: relative; overflow: hidden;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  padding: 36px 36px 28px;
+  width: 100%;
+  max-width: 380px;
 }
-.kc-login-card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, #1AC77C, #1DE08C);
-}
-.kc-login-logo {
-  text-align: center; margin-bottom: 32px;
-}
-.kc-login-logo .brand {
+.kc-login-card-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 26px; font-weight: 800; color: #171D1C;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-.kc-login-logo .brand .dot {
-  width: 10px; height: 10px; background: #1AC77C; border-radius: 50%;
-}
-.kc-login-logo .brand em { color: #1AC77C; font-style: normal; }
-.kc-login-logo .sub {
-  font-size: 11px; color: #9CA3AF; letter-spacing: 2px;
-  text-transform: uppercase; margin-top: 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 24px;
 }
 /* Google button */
 .kc-google-btn {
   width: 100%;
-  background: #fff;
-  border: 1.5px solid #E5E7EB;
+  background: #FFFFFF;
+  border: 1.5px solid #D1D5DB;
   border-radius: 8px;
   padding: 11px 16px;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
-  color: #374151; cursor: pointer; margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s;
+  margin-bottom: 6px;
 }
-.kc-google-btn:hover { border-color: #9CA3AF; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.kc-google-btn:hover { border-color: #9CA3AF; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.kc-domain-hint {
+  text-align: center;
+  font-size: 12px;
+  color: #9CA3AF;
+  font-family: 'Noto Sans', sans-serif;
+  margin-bottom: 20px;
+}
 .kc-divider {
-  display: flex; align-items: center; gap: 10px;
-  color: #9CA3AF; font-size: 12px; margin-bottom: 20px;
+  border: none;
+  border-top: 1px solid #E5E7EB;
+  margin: 20px 0;
 }
-.kc-divider::before, .kc-divider::after {
-  content: ''; flex: 1; height: 1px; background: #E5E7EB;
+.kc-demo-link {
+  text-align: center;
+  font-size: 13px;
+  color: #6B7280;
+  font-family: 'Noto Sans', sans-serif;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
+.kc-demo-link:hover { color: #374151; }
 .kc-sso-info {
   background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px;
   padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: #92400E;
@@ -607,66 +655,140 @@ def render_sidebar():
 # LOGIN
 # ---------------------------------------------------------------------------
 def view_login():
-    _, col, _ = st.columns([1, 1.1, 1])
-    with col:
-        st.markdown("<div style='height:48px'></div>", unsafe_allow_html=True)
+    # Fondo oscuro de toda la página — inyectamos sobre el body de Streamlit
+    st.markdown("""
+    <style>
+      .stApp { background: linear-gradient(160deg,#0A1628 0%,#0D1E35 50%,#0A2240 100%) !important; }
+      section[data-testid="stSidebar"] { display: none !important; }
+      .block-container { padding: 0 !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
-        # Google SSO info banner
+    # Icono Kuna (SVG aproximado del logo del presskit)
+    kuna_icon = """
+    <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19 3 L19 35" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M3 19 L35 19" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M7.5 7.5 L30.5 30.5" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M30.5 7.5 L7.5 30.5" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+    </svg>"""
+
+    # Layout centrado
+    _, col, _ = st.columns([1, 1.05, 1])
+    with col:
+        st.markdown("<div style='height:60px'></div>", unsafe_allow_html=True)
+
+        # Logo + subtítulo ENCIMA de la card
+        st.markdown(f"""
+        <div style="text-align:center; margin-bottom:28px;">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;">
+            {kuna_icon}
+            <span style="font-family:'Outfit',sans-serif;font-size:28px;font-weight:700;
+                         color:#FFFFFF;letter-spacing:0.5px;">kuna</span>
+          </div>
+          <div style="font-family:'Noto Sans',sans-serif;font-size:14px;
+                      color:rgba(255,255,255,0.45);">Portal de Bonos</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Card blanca
+        st.markdown('<div class="kc-login-card">', unsafe_allow_html=True)
+        st.markdown('<div class="kc-login-card-title">Iniciar Sesión</div>', unsafe_allow_html=True)
+
+        # Botón Google SSO (visual — mock para evaluación)
+        if st.button(
+            "Iniciar sesión con Google",
+            use_container_width=True,
+            key="google_btn",
+        ):
+            st.session_state.show_sso_info = not st.session_state.show_sso_info
+            st.rerun()
+
+        # Icono G en el botón (hacemos override del estilo del botón de Google)
+        st.markdown("""
+        <style>
+        button[kind="secondary"][data-testid="baseButton-secondary"]:first-of-type,
+        div[data-testid="stButton"]:first-of-type > button {
+          background: #FFFFFF !important;
+          color: #374151 !important;
+          border: 1.5px solid #D1D5DB !important;
+          font-size: 14px !important;
+          font-weight: 600 !important;
+          padding: 10px 16px !important;
+          display: flex !important;
+          justify-content: center !important;
+          gap: 10px !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
         if st.session_state.show_sso_info:
             st.markdown("""
             <div class="kc-sso-info">
-              ⚙️ <strong>Google SSO requiere configuración:</strong><br>
-              Necesitas un proyecto en Google Cloud Console con OAuth 2.0 habilitado.
-              La integración toma ~2 horas. Pide las credenciales a tu equipo de IT
-              o crea un proyecto en <strong>console.cloud.google.com</strong>.
+              ⚙️ <strong>Requiere Google Cloud Console:</strong><br>
+              Necesitas un proyecto OAuth 2.0 configurado. Toma ~2 horas.
+              Cuando tengas el <code>client_id</code> y <code>client_secret</code>,
+              el código ya está listo para recibirlos.
             </div>""", unsafe_allow_html=True)
 
         st.markdown("""
-        <div class="kc-login-card">
-          <div class="kc-login-logo">
-            <div class="brand"><div class="dot"></div>kuna <em>capital</em></div>
-            <div class="sub">Portal de Bonos</div>
-          </div>
-        </div>""", unsafe_allow_html=True)
+        <div class="kc-domain-hint">Solo correos @kunacapital.com y @kavak.com</div>
+        <hr class="kc-divider">
+        """, unsafe_allow_html=True)
 
-        # Google SSO button (mock — para evaluación visual)
-        if st.button("🔵  Continuar con Google", use_container_width=True, key="google_btn"):
-            st.session_state.show_sso_info = True
+        # Modo demo toggle
+        if st.button("Modo demo (credenciales de prueba)", key="demo_toggle",
+                     use_container_width=False):
+            st.session_state.show_demo = not st.session_state.get("show_demo", False)
             st.rerun()
 
-        st.markdown('<div class="kc-divider">o inicia sesión con tu cuenta</div>',
-                    unsafe_allow_html=True)
-
-        if st.session_state.login_err:
-            st.markdown(f'<div class="kc-err">⚠ {st.session_state.login_err}</div>',
-                        unsafe_allow_html=True)
-            st.session_state.login_err = ""
-
-        with st.form("login", clear_on_submit=False):
-            user = st.text_input("Usuario", placeholder="tu.usuario")
-            pwd  = st.text_input("Contraseña", type="password", placeholder="••••••••")
-            st.markdown("<br>", unsafe_allow_html=True)
-            ok   = st.form_submit_button("Ingresar →", use_container_width=True)
-
-        if ok:
-            conn = get_db()
-            row  = conn.execute("SELECT * FROM usuarios WHERE username=? AND password=?",
-                                (user.strip(), pwd.strip())).fetchone()
-            conn.close()
-            if row:
-                st.session_state.update(logged_in=True, user_id=row["id"],
-                    username=row["username"], nombre=row["nombre"],
-                    rol=row["rol"], page="main", show_toast=True)
-                st.rerun()
-            else:
-                st.session_state.login_err = "Usuario o contraseña incorrectos."
-                st.rerun()
-
         st.markdown("""
-        <p style="text-align:center;color:#9CA3AF;font-size:11px;margin-top:18px;
-                  font-family:'Noto Sans',sans-serif;">
-          Acceso restringido · Solo personal autorizado
-        </p>""", unsafe_allow_html=True)
+        <style>
+        div[data-testid="stButton"]:has(button[data-testid*="demo_toggle"]) button {
+          background: transparent !important;
+          border: none !important;
+          color: #6B7280 !important;
+          font-size: 13px !important;
+          font-weight: 400 !important;
+          text-decoration: underline !important;
+          text-underline-offset: 2px !important;
+          padding: 4px 0 !important;
+          width: auto !important;
+        }
+        div[data-testid="stButton"]:has(button[data-testid*="demo_toggle"]) {
+          text-align: center !important;
+        }
+        </style>""", unsafe_allow_html=True)
+
+        # Form demo (oculto por defecto)
+        if st.session_state.get("show_demo", False):
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.session_state.login_err:
+                st.markdown(f'<div class="kc-err">⚠ {st.session_state.login_err}</div>',
+                            unsafe_allow_html=True)
+                st.session_state.login_err = ""
+
+            with st.form("login", clear_on_submit=False):
+                user = st.text_input("Usuario", placeholder="admin")
+                pwd  = st.text_input("Contraseña", type="password", placeholder="••••••••")
+                st.markdown("<br>", unsafe_allow_html=True)
+                ok   = st.form_submit_button("Ingresar", use_container_width=True)
+
+            if ok:
+                conn = get_db()
+                row  = conn.execute("SELECT * FROM usuarios WHERE username=? AND password=?",
+                                    (user.strip(), pwd.strip())).fetchone()
+                conn.close()
+                if row:
+                    st.session_state.update(logged_in=True, user_id=row["id"],
+                        username=row["username"], nombre=row["nombre"],
+                        rol=row["rol"], page="main", show_toast=True, show_demo=False)
+                    st.rerun()
+                else:
+                    st.session_state.login_err = "Usuario o contraseña incorrectos."
+                    st.rerun()
+
+        st.markdown('</div>', unsafe_allow_html=True)  # cierra kc-login-card
 
 # ---------------------------------------------------------------------------
 # PANEL DE BONOS (admin)
