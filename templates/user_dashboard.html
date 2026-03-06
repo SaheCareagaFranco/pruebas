@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis Bonos</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f6fb;
+      color: #333;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #1a237e, #1565c0);
+      color: #fff;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-left .icon { font-size: 28px; }
+    .header-left h1 { font-size: 18px; font-weight: 700; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .user-badge {
+      background: rgba(255,255,255,0.15);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+    .btn-logout {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.4);
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.3); }
+    .container { max-width: 960px; margin: 40px auto; padding: 0 24px; }
+    .welcome-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      border-left: 5px solid #1a237e;
+    }
+    .welcome-card h2 { font-size: 20px; color: #1a237e; }
+    .welcome-card p { color: #666; margin-top: 4px; font-size: 14px; }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      text-align: center;
+    }
+    .stat-card .stat-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #1a237e; }
+    .stat-card .stat-sub { font-size: 13px; color: #666; margin-top: 4px; }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e8eaf6;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    thead { background: #e8eaf6; }
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #3949ab;
+      font-weight: 700;
+    }
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+    .monto { font-weight: 700; color: #2e7d32; }
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #aaa;
+    }
+    .empty-state .icon { font-size: 48px; display: block; margin-bottom: 12px; }
+    .empty-state p { font-size: 15px; }
+    .alert {
+      padding: 10px 14px;
+      border-radius: 7px;
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+    .alert-success { background: #e8f5e9; color: #2e7d32; border-left: 4px solid #2e7d32; }
+    .alert-danger  { background: #ffebee; color: #c62828; border-left: 4px solid #c62828; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <span class="icon">&#128181;</span>
+      <h1>Intranet de Bonos</h1>
+    </div>
+    <div class="header-right">
+      <span class="user-badge">&#128100; {{ session.nombre }}</span>
+      <a href="/logout" class="btn-logout">Cerrar sesion</a>
+    </div>
+  </header>
+
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="welcome-card">
+      <h2>Bienvenido, {{ session.nombre }}</h2>
+      <p>Aqui puedes consultar todos tus bonos registrados.</p>
+    </div>
+
+    {% if bonos %}
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total de bonos</div>
+        <div class="stat-value">{{ bonos|length }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Monto total acumulado</div>
+        <div class="stat-value">${{ "%.2f"|format(bonos|sum(attribute='monto')) }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Ultimo bono</div>
+        <div class="stat-value">${{ "%.2f"|format(bonos[0].monto) }}</div>
+        <div class="stat-sub">{{ bonos[0].periodo }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="section-title">Mis bonos</div>
+
+    {% if bonos %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Concepto</th>
+          <th>Periodo</th>
+          <th>Fecha</th>
+          <th>Monto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in bonos %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ b.concepto }}</td>
+          <td>{{ b.periodo }}</td>
+          <td>{{ b.fecha }}</td>
+          <td class="monto">${{ "%.2f"|format(b.monto) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <span class="icon">&#128220;</span>
+      <p>No tienes bonos registrados aun.<br>Contacta a tu administrador para mas informacion.</p>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>

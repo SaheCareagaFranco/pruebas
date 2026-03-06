@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Administrador</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f6fb;
+      color: #333;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #4a148c, #6a1b9a);
+      color: #fff;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-left .icon { font-size: 28px; }
+    .header-left h1 { font-size: 18px; font-weight: 700; }
+    .admin-badge {
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-left: 10px;
+    }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .btn-logout {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.4);
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.3); }
+    .container { max-width: 1200px; margin: 36px auto; padding: 0 24px; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+    .tab {
+      padding: 10px 22px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      background: #e0e0e0;
+      color: #555;
+      border: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    .tab.active { background: #fff; color: #4a148c; box-shadow: 0 -2px 6px rgba(0,0,0,0.08); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .card h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #4a148c;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f3e5f5;
+    }
+    .form-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+    .form-group { flex: 1; min-width: 160px; }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 5px;
+    }
+    input[type="text"], input[type="password"], input[type="number"],
+    input[type="date"], select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 7px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      color: #333;
+    }
+    input:focus, select:focus { border-color: #6a1b9a; }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn-primary { background: #6a1b9a; color: #fff; }
+    .btn-success { background: #2e7d32; color: #fff; }
+    .btn-danger  { background: #c62828; color: #fff; padding: 6px 12px; font-size: 12px; }
+    .btn-sm      { padding: 5px 10px; font-size: 12px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead { background: #f3e5f5; }
+    th {
+      padding: 11px 14px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6a1b9a;
+      font-weight: 700;
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fdf8ff; }
+    .monto { font-weight: 700; color: #2e7d32; }
+    .password-cell {
+      font-family: monospace;
+      background: #f3e5f5;
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: #4a148c;
+      font-size: 13px;
+    }
+    .alert {
+      padding: 10px 14px;
+      border-radius: 7px;
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+    .alert-success { background: #e8f5e9; color: #2e7d32; border-left: 4px solid #2e7d32; }
+    .alert-danger  { background: #ffebee; color: #c62828; border-left: 4px solid #c62828; }
+    .empty { text-align: center; color: #aaa; padding: 30px; font-size: 14px; }
+    .modal-backdrop {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px 32px;
+      width: 400px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    .modal h3 { font-size: 16px; color: #4a148c; margin-bottom: 18px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+    .btn-secondary { background: #e0e0e0; color: #333; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <span class="icon">&#9881;&#65039;</span>
+      <h1>Intranet de Bonos</h1>
+      <span class="admin-badge">Admin</span>
+    </div>
+    <div class="header-right">
+      <a href="/logout" class="btn-logout">Cerrar sesion</a>
+    </div>
+  </header>
+
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('usuarios')">Usuarios</button>
+      <button class="tab" onclick="switchTab('bonos')">Bonos</button>
+    </div>
+
+    <!-- ==================== TAB USUARIOS ==================== -->
+    <div id="tab-usuarios" class="tab-content active">
+
+      <!-- Agregar usuario -->
+      <div class="card">
+        <h2>Agregar nuevo usuario</h2>
+        <form method="POST" action="/admin/agregar_usuario">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre completo</label>
+              <input type="text" name="nombre" placeholder="Ej: Juan Perez" required>
+            </div>
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" name="username" placeholder="Ej: jperez" required>
+            </div>
+            <div class="form-group">
+              <label>Contrasena</label>
+              <input type="text" name="password" placeholder="Contrasena" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Agregar usuario</button>
+        </form>
+      </div>
+
+      <!-- Lista de usuarios -->
+      <div class="card">
+        <h2>Usuarios registrados (con contrasenas)</h2>
+        {% if usuarios %}
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Username</th>
+              <th>Contrasena</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in usuarios %}
+            <tr>
+              <td>{{ u.id }}</td>
+              <td>{{ u.nombre }}</td>
+              <td>{{ u.username }}</td>
+              <td><span class="password-cell">{{ u.password }}</span></td>
+              <td>
+                <button class="btn btn-sm btn-primary"
+                  onclick="abrirEditar({{ u.id }}, '{{ u.nombre }}', '{{ u.password }}')">
+                  Editar
+                </button>
+                <form method="POST" action="/admin/eliminar_usuario/{{ u.id }}"
+                  style="display:inline"
+                  onsubmit="return confirm('Eliminar a {{ u.nombre }} y todos sus bonos?')">
+                  <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty">No hay usuarios registrados aun.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ==================== TAB BONOS ==================== -->
+    <div id="tab-bonos" class="tab-content">
+
+      <!-- Agregar bono -->
+      <div class="card">
+        <h2>Agregar bono a un usuario</h2>
+        {% if usuarios %}
+        <form method="POST" action="/admin/agregar_bono">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Usuario</label>
+              <select name="usuario_id" required>
+                <option value="">Seleccionar usuario...</option>
+                {% for u in usuarios %}
+                <option value="{{ u.id }}">{{ u.nombre }} ({{ u.username }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Concepto</label>
+              <input type="text" name="concepto" placeholder="Ej: Bono de desempeno" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Monto ($)</label>
+              <input type="number" name="monto" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div class="form-group">
+              <label>Periodo</label>
+              <input type="text" name="periodo" placeholder="Ej: Q1 2024, Enero 2024" required>
+            </div>
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="date" name="fecha" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-success">Agregar bono</button>
+        </form>
+        {% else %}
+        <div class="empty">Primero registra usuarios para poder asignarles bonos.</div>
+        {% endif %}
+      </div>
+
+      <!-- Lista de bonos -->
+      <div class="card">
+        <h2>Todos los bonos registrados</h2>
+        {% if bonos %}
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Usuario</th>
+              <th>Concepto</th>
+              <th>Periodo</th>
+              <th>Fecha</th>
+              <th>Monto</th>
+              <th>Accion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in bonos %}
+            <tr>
+              <td>{{ b.id }}</td>
+              <td>{{ b.nombre_usuario }}</td>
+              <td>{{ b.concepto }}</td>
+              <td>{{ b.periodo }}</td>
+              <td>{{ b.fecha }}</td>
+              <td class="monto">${{ "%.2f"|format(b.monto) }}</td>
+              <td>
+                <form method="POST" action="/admin/eliminar_bono/{{ b.id }}"
+                  style="display:inline"
+                  onsubmit="return confirm('Eliminar este bono?')">
+                  <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty">No hay bonos registrados aun.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal editar usuario -->
+  <div class="modal-backdrop" id="modal-editar">
+    <div class="modal">
+      <h3>Editar usuario</h3>
+      <form method="POST" id="form-editar">
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Nombre completo</label>
+          <input type="text" name="nombre" id="edit-nombre" required>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Contrasena</label>
+          <input type="text" name="password" id="edit-password" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="cerrarEditar()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(name) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    function abrirEditar(id, nombre, password) {
+      document.getElementById('form-editar').action = '/admin/editar_usuario/' + id;
+      document.getElementById('edit-nombre').value = nombre;
+      document.getElementById('edit-password').value = password;
+      document.getElementById('modal-editar').classList.add('open');
+    }
+
+    function cerrarEditar() {
+      document.getElementById('modal-editar').classList.remove('open');
+    }
+
+    document.getElementById('modal-editar').addEventListener('click', function(e) {
+      if (e.target === this) cerrarEditar();
+    });
+
+    // Si hay un hash en la URL, activar tab correspondiente
+    const hash = window.location.hash;
+    if (hash === '#bonos') {
+      document.querySelectorAll('.tab')[1].click();
+    }
+  </script>
+</body>
+</html>
