@@ -8,7 +8,7 @@ from datetime import date
 # ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="Kuna Capital | Bonos",
-    page_icon="💚",
+    page_icon="🟢",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -32,55 +32,52 @@ html, body, [class*="css"] { font-family: 'Noto Sans', sans-serif; }
    SIDEBAR
 ══════════════════════════════════ */
 section[data-testid="stSidebar"] {
-  background: #171D1C !important;
-  border-right: 1px solid #2C3533;
-  min-width: 220px !important;
-  max-width: 220px !important;
+  background: #0A1628 !important;
+  border-right: 1px solid #162030;
+  min-width: 236px !important;
+  max-width: 236px !important;
 }
 section[data-testid="stSidebar"] > div { padding: 0 !important; }
 [data-testid="stSidebarContent"] { padding: 0 !important; }
 
 /* Logo block */
 .kc-sb-logo {
-  padding: 22px 20px 16px;
-  border-bottom: 1px solid #2C3533;
+  padding: 24px 20px 18px;
+  border-bottom: 1px solid #162030;
 }
 .kc-sb-logo .brand {
   font-family: 'Outfit', sans-serif;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  color: #E0E7E4;
+  color: #FFFFFF;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
-.kc-sb-logo .brand .dot {
-  width: 8px; height: 8px;
-  background: #1AC77C;
-  border-radius: 50%;
-  flex-shrink: 0;
+.kc-sb-logo .brand .kc-ast {
+  font-size: 22px;
+  color: #FFFFFF;
+  line-height: 1;
 }
-.kc-sb-logo .brand em { color: #1AC77C; font-style: normal; }
 .kc-sb-logo .sub {
-  font-size: 10px;
-  color: #748C86;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  margin-top: 3px;
-  padding-left: 16px;
+  font-size: 11px;
+  color: #4A6078;
+  letter-spacing: 0.3px;
+  margin-top: 4px;
+  padding-left: 32px;
 }
 
 /* User block */
 .kc-sb-user {
   padding: 16px 20px;
-  border-bottom: 1px solid #2C3533;
+  border-bottom: 1px solid #162030;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 .kc-avatar {
-  width: 36px; height: 36px;
-  background: linear-gradient(135deg, #1AC77C, #148152);
+  width: 38px; height: 38px;
+  background: #1AC77C;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -88,65 +85,73 @@ section[data-testid="stSidebar"] > div { padding: 0 !important; }
   font-family: 'Outfit', sans-serif;
   font-size: 13px;
   font-weight: 700;
-  color: #0F1512;
+  color: #0A1628;
   flex-shrink: 0;
 }
 .kc-sb-user .info .name {
   font-size: 13px;
   font-weight: 600;
-  color: #E0E7E4;
+  color: #FFFFFF;
   font-family: 'Outfit', sans-serif;
 }
 .kc-sb-user .info .role {
   font-size: 11px;
-  color: #748C86;
-  margin-top: 1px;
+  color: #4A6078;
+  margin-top: 2px;
+  font-family: 'Noto Sans', sans-serif;
 }
 
-/* Nav items */
-.kc-sb-nav { padding: 12px 0; }
-.kc-sb-item {
+/* Nav — inactive buttons reset */
+section[data-testid="stSidebar"] .stButton > button {
+  background: transparent !important;
+  border: none !important;
+  color: #8BA5BE !important;
+  text-align: left !important;
+  border-radius: 8px !important;
+  padding: 10px 14px !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  width: 100% !important;
+  transition: background 0.15s, color 0.15s !important;
+  box-shadow: none !important;
+}
+section[data-testid="stSidebar"] .stButton > button:hover {
+  background: rgba(255,255,255,0.05) !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+/* Nav — active item (rendered as HTML div) */
+.kc-nav-active {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 20px;
-  font-size: 13px;
+  background: #1AC77C;
+  color: #FFFFFF;
+  border-radius: 8px;
+  padding: 10px 14px;
   font-family: 'Outfit', sans-serif;
-  font-weight: 500;
-  color: #748C86;
-  cursor: pointer;
-  border-radius: 0;
-  transition: all 0.15s;
-  text-decoration: none;
-  border-left: 3px solid transparent;
-}
-.kc-sb-item:hover { background: rgba(255,255,255,0.04); color: #E0E7E4; }
-.kc-sb-item.active {
-  background: rgba(26,199,124,0.08);
-  color: #1AC77C;
-  border-left: 3px solid #1AC77C;
+  font-size: 13px;
   font-weight: 600;
+  margin: 2px 12px;
 }
-.kc-sb-item .ico { font-size: 15px; }
+.kc-nav-active .nav-ico { font-size: 15px; }
 
-/* Logout at bottom */
-.kc-sb-logout {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  padding: 16px 20px;
-  border-top: 1px solid #2C3533;
+/* Logout button */
+.kc-sb-logout-wrap {
+  border-top: 1px solid #162030;
+  margin-top: 12px;
+  padding-top: 8px;
 }
-.kc-sb-logout a {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #748C86;
-  font-family: 'Outfit', sans-serif;
-  cursor: pointer;
-  text-decoration: none;
+section[data-testid="stSidebar"] .kc-sb-logout-wrap .stButton > button {
+  color: #4A6078 !important;
+  font-size: 13px !important;
 }
-.kc-sb-logout a:hover { color: #FF7070; }
+section[data-testid="stSidebar"] .kc-sb-logout-wrap .stButton > button:hover {
+  color: #FF7070 !important;
+  background: rgba(255,112,112,0.06) !important;
+}
 
 /* ══════════════════════════════════
    MAIN CONTENT
@@ -477,12 +482,12 @@ def initials(name):
 # ---------------------------------------------------------------------------
 def render_sidebar():
     with st.sidebar:
-        # Logo
+        # Logo con asterisco Kuna
         st.markdown("""
         <div class="kc-sb-logo">
           <div class="brand">
-            <div class="dot"></div>
-            <span>kuna <em>capital</em></span>
+            <span class="kc-ast">✱</span>
+            <span>kuna</span>
           </div>
           <div class="sub">Portal de Bonos</div>
         </div>""", unsafe_allow_html=True)
@@ -499,46 +504,38 @@ def render_sidebar():
           </div>
         </div>""", unsafe_allow_html=True)
 
-        st.markdown('<div class="kc-sb-nav">', unsafe_allow_html=True)
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
         # Nav items
         if st.session_state.rol == "admin":
             pages = [
-                ("main",      "📋", "Panel de Bonos"),
-                ("usuarios",  "👥", "Gestión de Usuarios"),
+                ("main",     "📋", "Panel de Bonos"),
+                ("usuarios", "👥", "Gestión de Usuarios"),
             ]
         else:
             pages = [("main", "💚", "Mis Bonos")]
 
         for key, ico, label in pages:
-            active = "active" if st.session_state.page == key else ""
-            if st.button(f"{ico}  {label}", key=f"nav_{key}",
-                         use_container_width=True):
-                st.session_state.page = key
-                st.rerun()
-            # Inject active style via JS hack — use markdown overlay
-            st.markdown(f"""
-            <style>
-            div[data-testid="stSidebar"] button[kind="secondary"]:nth-of-type({pages.index((key,ico,label))+1}) {{
-              background: {"rgba(26,199,124,0.08)" if active else "transparent"} !important;
-              color: {"#1AC77C" if active else "#748C86"} !important;
-              border: none !important;
-              border-left: 3px solid {"#1AC77C" if active else "transparent"} !important;
-              border-radius: 0 !important;
-              text-align: left !important;
-              padding: 10px 20px !important;
-              font-family: 'Outfit', sans-serif !important;
-              font-size: 13px !important;
-              font-weight: {"600" if active else "500"} !important;
-            }}
-            </style>""", unsafe_allow_html=True)
+            if st.session_state.page == key:
+                # Activo: div HTML estilizado (verde sólido)
+                st.markdown(f"""
+                <div class="kc-nav-active">
+                  <span class="nav-ico">{ico}</span>
+                  <span>{label}</span>
+                </div>""", unsafe_allow_html=True)
+            else:
+                # Inactivo: botón clickeable
+                if st.button(f"{ico}  {label}", key=f"nav_{key}",
+                             use_container_width=True):
+                    st.session_state.page = key
+                    st.rerun()
 
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown("<br>" * 6, unsafe_allow_html=True)
-
-        # Logout
+        # Logout al fondo
+        st.markdown("<br>" * 4, unsafe_allow_html=True)
+        st.markdown('<div class="kc-sb-logout-wrap">', unsafe_allow_html=True)
         if st.button("↩  Cerrar Sesión", use_container_width=True, key="logout_btn"):
             logout()
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # LOGIN
