@@ -478,7 +478,7 @@ init_db()
 # ---------------------------------------------------------------------------
 for k, v in dict(logged_in=False, user_id=None, username="", nombre="",
                  rol="", msg=None, login_err="", page="main",
-                 show_toast=False, show_sso_info=False,
+                 show_toast=False, show_sso_info=False, show_register=False,
                  notif_pending=[], notif_checked=False).items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -561,120 +561,135 @@ def view_login():
       section[data-testid="stSidebar"] { display: none !important; }
       .block-container { padding: 2rem 1rem 2rem !important; max-width: 100% !important; }
 
-      /* Columna central = card blanca */
+      /* Card = columna central */
       div[data-testid="stColumn"]:nth-child(2) > div[data-testid="stVerticalBlock"] {
         background: #FFFFFF;
-        border-radius: 14px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.40);
+        border-radius: 16px;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.45);
         padding: 36px 32px 28px !important;
       }
-      /* Labels dentro de la card */
+
+      /* Labels del form de login */
       div[data-testid="stColumn"]:nth-child(2) label p {
-        color: #6B7280 !important;
-        font-size: 12px !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
+        color: #6B7280 !important; font-size: 12px !important;
+        font-weight: 600 !important; text-transform: uppercase !important;
         letter-spacing: 0.6px !important;
       }
-      /* Input focus */
       div[data-testid="stColumn"]:nth-child(2) input:focus {
         border-color: #1AC77C !important;
         box-shadow: 0 0 0 3px rgba(26,199,124,0.12) !important;
       }
-      /* Botón Google: blanco con borde */
-      div[data-testid="stColumn"]:nth-child(2) .stButton:first-of-type > button {
-        background: #FFFFFF !important;
-        color: #374151 !important;
-        border: 1.5px solid #D1D5DB !important;
-        font-size: 14px !important;
-        font-weight: 600 !important;
+
+      /* Botón 1 (Iniciar Sesión con Email) = verde */
+      div[data-testid="stColumn"]:nth-child(2) button:nth-of-type(1) {
+        background: #1AC77C !important; color: #FFFFFF !important;
+        border: none !important; font-size: 15px !important;
+        font-weight: 700 !important; padding: 13px 20px !important;
+        border-radius: 10px !important;
       }
-      div[data-testid="stColumn"]:nth-child(2) .stButton:first-of-type > button:hover {
-        border-color: #9CA3AF !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
-        color: #374151 !important;
+      div[data-testid="stColumn"]:nth-child(2) button:nth-of-type(1):hover {
+        background: #17B36E !important;
+        box-shadow: 0 4px 14px rgba(26,199,124,0.40) !important;
       }
-      /* Botón Ingresar: verde */
+
+      /* Botón 2 (Crear Cuenta) = navy oscuro */
+      div[data-testid="stColumn"]:nth-child(2) button:nth-of-type(2) {
+        background: #0A1628 !important; color: #FFFFFF !important;
+        border: none !important; font-size: 15px !important;
+        font-weight: 700 !important; padding: 13px 20px !important;
+        border-radius: 10px !important;
+      }
+      div[data-testid="stColumn"]:nth-child(2) button:nth-of-type(2):hover {
+        background: #0D1E35 !important;
+        box-shadow: 0 4px 14px rgba(10,22,40,0.30) !important;
+      }
+
+      /* Botón 3 (Modo demo) = link de texto */
+      div[data-testid="stColumn"]:nth-child(2) button:nth-of-type(3) {
+        background: transparent !important; border: none !important;
+        color: #6B7280 !important; font-size: 13px !important;
+        font-weight: 400 !important; text-decoration: underline !important;
+        text-underline-offset: 3px !important; box-shadow: none !important;
+        padding: 4px 8px !important;
+      }
+      div[data-testid="stColumn"]:nth-child(2) button:nth-of-type(3):hover {
+        color: #374151 !important; background: transparent !important;
+        box-shadow: none !important;
+      }
+
+      /* Botón Ingresar del form */
       div[data-testid="stColumn"]:nth-child(2) [data-testid="stFormSubmitButton"] > button {
-        background: #1AC77C !important;
-        color: #0F1512 !important;
-        border: none !important;
-        font-size: 14px !important;
-        font-weight: 700 !important;
-        letter-spacing: 0.3px !important;
+        background: #1AC77C !important; color: #0A1628 !important;
+        border: none !important; font-size: 14px !important;
+        font-weight: 700 !important; border-radius: 10px !important;
       }
       div[data-testid="stColumn"]:nth-child(2) [data-testid="stFormSubmitButton"] > button:hover {
         background: #17B36E !important;
-        color: #0F1512 !important;
         box-shadow: 0 4px 12px rgba(26,199,124,0.35) !important;
-      }
-      /* Botón "Modo demo": texto simple subrayado */
-      div[data-testid="stColumn"]:nth-child(2) .stButton:last-of-type > button {
-        background: transparent !important;
-        border: none !important;
-        color: #9CA3AF !important;
-        font-size: 13px !important;
-        font-weight: 400 !important;
-        text-decoration: underline !important;
-        box-shadow: none !important;
-        padding: 4px 8px !important;
       }
     </style>
     """, unsafe_allow_html=True)
 
-    kuna_icon = """<svg width="34" height="34" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+    kuna_icon = """<svg width="32" height="32" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M19 3 L19 35" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
       <path d="M3 19 L35 19" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
       <path d="M7.5 7.5 L30.5 30.5" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
       <path d="M30.5 7.5 L7.5 30.5" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
     </svg>"""
 
-    # Espaciado superior + logo encima de la card
     st.markdown(f"""
-    <div style="height:48px;"></div>
-    <div style="text-align:center;margin-bottom:22px;">
+    <div style="height:44px;"></div>
+    <div style="text-align:center;margin-bottom:20px;">
       <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px;">
         {kuna_icon}
         <span style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;
-                     color:#FFFFFF;letter-spacing:0.4px;">kuna</span>
+                     color:#FFFFFF;letter-spacing:0.3px;">kuna</span>
       </div>
       <div style="font-family:'Noto Sans',sans-serif;font-size:13px;
-                  color:rgba(255,255,255,0.40);">Portal de Bonos</div>
+                  color:rgba(255,255,255,0.38);">Portal de Bonos</div>
     </div>
     """, unsafe_allow_html=True)
 
     _, col, _ = st.columns([1, 1, 1])
     with col:
-        # Título
         st.markdown("""
-        <p style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;
-                  color:#111827;margin-bottom:18px;margin-top:4px;">Iniciar Sesión</p>
+        <p style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;
+                  color:#111827;margin-bottom:20px;margin-top:2px;">Iniciar Sesión</p>
         """, unsafe_allow_html=True)
 
-        # Botón Google SSO (mock)
-        if st.button("  Iniciar sesión con Google", use_container_width=True, key="google_btn"):
-            st.session_state.show_sso_info = not st.session_state.show_sso_info
+        # Botón 1 — verde
+        if st.button("Iniciar Sesión con Email", use_container_width=True, key="email_btn"):
+            st.session_state.show_demo = not st.session_state.get("show_demo", False)
+            st.session_state.show_register = False
             st.rerun()
 
-        if st.session_state.show_sso_info:
-            st.info("Requiere un proyecto OAuth 2.0 en Google Cloud Console (~2 h de configuración). Cuando tengas `client_id` y `client_secret`, el código ya está listo.")
+        # Botón 2 — navy
+        if st.button("Crear Cuenta", use_container_width=True, key="register_btn"):
+            st.session_state.show_register = not st.session_state.get("show_register", False)
+            st.session_state.show_demo = False
+            st.rerun()
+
+        if st.session_state.get("show_register", False):
+            st.info("Las cuentas son gestionadas por el administrador. Contacta a tu admin para obtener acceso.")
 
         st.markdown("""
         <p style="text-align:center;font-size:12px;color:#9CA3AF;
-                  font-family:'Noto Sans',sans-serif;margin:10px 0 4px;">
-          Solo correos @kunacapital.com y @kavak.com
+                  font-family:'Noto Sans',sans-serif;margin:12px 0 4px;">
+          Solo correos @kavak.com
         </p>
         """, unsafe_allow_html=True)
 
         st.divider()
 
-        # Toggle modo demo
+        # Botón 3 — link texto
         if st.button("Modo demo (credenciales de prueba)", key="demo_toggle", use_container_width=True):
             st.session_state.show_demo = not st.session_state.get("show_demo", False)
+            st.session_state.show_register = False
             st.rerun()
 
-        # Formulario demo
+        # Form de login
         if st.session_state.get("show_demo", False):
+            st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
             if st.session_state.login_err:
                 st.error(st.session_state.login_err)
                 st.session_state.login_err = ""
@@ -692,7 +707,8 @@ def view_login():
                 if row:
                     st.session_state.update(logged_in=True, user_id=row["id"],
                         username=row["username"], nombre=row["nombre"],
-                        rol=row["rol"], page="main", show_toast=True, show_demo=False)
+                        rol=row["rol"], page="main", show_toast=True,
+                        show_demo=False, show_register=False)
                     st.rerun()
                 else:
                     st.session_state.login_err = "Usuario o contraseña incorrectos."
