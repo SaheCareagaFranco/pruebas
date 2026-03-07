@@ -452,6 +452,19 @@ def init_db():
         usuario_id INTEGER NOT NULL, concepto TEXT NOT NULL,
         monto REAL NOT NULL, periodo TEXT NOT NULL, fecha TEXT NOT NULL,
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id))""")
+    c.execute("""CREATE TABLE IF NOT EXISTS listas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS lista_usuarios (
+        lista_id INTEGER NOT NULL,
+        usuario_id INTEGER NOT NULL,
+        PRIMARY KEY (lista_id, usuario_id),
+        FOREIGN KEY (lista_id) REFERENCES listas(id),
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id))""")
+    c.execute("""CREATE TABLE IF NOT EXISTS bonos_vistos (
+        usuario_id INTEGER NOT NULL,
+        bono_id INTEGER NOT NULL,
+        PRIMARY KEY (usuario_id, bono_id))""")
     c.execute("SELECT id FROM usuarios WHERE username='admin'")
     if not c.fetchone():
         c.execute("INSERT INTO usuarios(username,password,nombre,rol) VALUES(?,?,?,?)",
@@ -465,7 +478,8 @@ init_db()
 # ---------------------------------------------------------------------------
 for k, v in dict(logged_in=False, user_id=None, username="", nombre="",
                  rol="", msg=None, login_err="", page="main",
-                 show_toast=False, show_sso_info=False).items():
+                 show_toast=False, show_sso_info=False,
+                 notif_pending=[], notif_checked=False).items():
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -762,6 +776,32 @@ def view_admin_bonos():
 
     # Lista de bonos como cards
     if bonos:
+        # Editar bono
+        with st.expander("✏️  Editar bono"):
+            bopts_e = {f"#{b['id']} — {b['nu']} · {b['concepto']} · ${b['monto']:,.2f}": b for b in bonos}
+            sb_e    = st.selectbox("Seleccionar bono a editar", list(bopts_e.keys()), key="eb_sel")
+            bsel    = bopts_e[sb_e]
+            with st.form("edit_b", clear_on_submit=False):
+                ec1, ec2 = st.columns(2)
+                with ec1:
+                    new_con = st.text_input("Concepto", value=bsel["concepto"])
+                    new_per = st.text_input("Periodo",  value=bsel["periodo"])
+                with ec2:
+                    new_mon = st.number_input("Monto ($)", value=float(bsel["monto"]),
+                                              min_value=0.0, step=500.0, format="%.2f")
+                    new_fec = st.date_input("Fecha", value=date.fromisoformat(bsel["fecha"]))
+                if st.form_submit_button("Guardar cambios →"):
+                    if not new_con.strip() or not new_per.strip():
+                        st.session_state.msg = ("e", "Concepto y periodo son obligatorios.")
+                    else:
+                        conn = get_db()
+                        conn.execute(
+                            "UPDATE bonos SET concepto=?,monto=?,periodo=?,fecha=? WHERE id=?",
+                            (new_con.strip(), new_mon, new_per.strip(), str(new_fec), bsel["id"]))
+                        conn.commit(); conn.close()
+                        st.session_state.msg = ("s", "Bono actualizado.")
+                    st.rerun()
+
         # Eliminar bono
         with st.expander("🗑️  Eliminar bono"):
             bopts = {f"#{b['id']} — {b['nu']} · {b['concepto']} · ${b['monto']:,.2f}": b["id"] for b in bonos}
@@ -878,6 +918,97 @@ def view_admin_usuarios():
         st.markdown('<div class="kc-empty"><span class="ico">👥</span>'
                     '<p>No hay usuarios registrados aun.</p></div>', unsafe_allow_html=True)
 
+    # ── Listas de usuarios ──────────────────────────────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="kc-page-title" style="font-size:18px;margin-bottom:4px;">Listas de Usuarios</div>'
+                '<div class="kc-page-sub" style="margin-bottom:20px;">Agrupa colaboradores en listas personalizadas</div>',
+                unsafe_allow_html=True)
+
+    conn_l = get_db()
+    listas  = conn_l.execute("SELECT * FROM listas ORDER BY nombre").fetchall()
+    conn_l.close()
+
+    with st.expander("➕  Crear nueva lista", expanded=not listas):
+        with st.form("add_lista", clear_on_submit=True):
+            nombre_lista = st.text_input("Nombre de la lista", placeholder="Ej: Equipo Comercial")
+            if st.form_submit_button("Crear lista →"):
+                if not nombre_lista.strip():
+                    st.session_state.msg = ("e", "El nombre es obligatorio.")
+                else:
+                    conn_l2 = get_db()
+                    conn_l2.execute("INSERT INTO listas(nombre) VALUES(?)", (nombre_lista.strip(),))
+                    conn_l2.commit(); conn_l2.close()
+                    st.session_state.msg = ("s", f"Lista '{nombre_lista.strip()}' creada.")
+                st.rerun()
+
+    if listas and usuarios:
+        for lista in listas:
+            conn_l3 = get_db()
+            miembros = conn_l3.execute("""
+                SELECT u.* FROM usuarios u
+                JOIN lista_usuarios lu ON u.id=lu.usuario_id
+                WHERE lu.lista_id=? ORDER BY u.nombre""", (lista["id"],)).fetchall()
+            conn_l3.close()
+            miembro_ids = {m["id"] for m in miembros}
+
+            with st.expander(f"📋  {lista['nombre']}  ({len(miembros)} usuarios)"):
+                lc1, lc2 = st.columns([3, 1])
+                with lc1:
+                    # Agregar usuario a lista
+                    disponibles = [u for u in usuarios if u["id"] not in miembro_ids]
+                    if disponibles:
+                        with st.form(f"add_lu_{lista['id']}", clear_on_submit=True):
+                            uopts = {f"{u['nombre']}  ({u['username']})": u["id"] for u in disponibles}
+                            su_add = st.selectbox("Agregar usuario", list(uopts.keys()),
+                                                  key=f"sel_add_{lista['id']}")
+                            if st.form_submit_button("Agregar →"):
+                                conn_l4 = get_db()
+                                conn_l4.execute("INSERT OR IGNORE INTO lista_usuarios VALUES(?,?)",
+                                                (lista["id"], uopts[su_add]))
+                                conn_l4.commit(); conn_l4.close()
+                                st.session_state.msg = ("s", "Usuario agregado a la lista.")
+                                st.rerun()
+                    else:
+                        st.caption("Todos los colaboradores ya están en esta lista.")
+                with lc2:
+                    if st.button(f"🗑 Eliminar lista", key=f"del_lista_{lista['id']}"):
+                        conn_l5 = get_db()
+                        conn_l5.execute("DELETE FROM lista_usuarios WHERE lista_id=?", (lista["id"],))
+                        conn_l5.execute("DELETE FROM listas WHERE id=?", (lista["id"],))
+                        conn_l5.commit(); conn_l5.close()
+                        st.session_state.msg = ("s", f"Lista '{lista['nombre']}' eliminada.")
+                        st.rerun()
+
+                # Mostrar miembros actuales
+                if miembros:
+                    st.markdown("<div style='margin-top:10px'>", unsafe_allow_html=True)
+                    for m in miembros:
+                        mc1, mc2 = st.columns([5, 1])
+                        with mc1:
+                            ini_m = initials(m["nombre"])
+                            st.markdown(f"""
+                            <div class="kc-card-item" style="padding:10px 14px;margin-bottom:6px;">
+                              <div class="kc-card-avatar" style="width:30px;height:30px;font-size:11px;">{ini_m}</div>
+                              <div class="kc-card-body">
+                                <span class="kc-card-name" style="font-size:13px;">{m['nombre']}</span>
+                                <span class="kc-tag kc-tag-blue" style="margin-left:8px;">@{m['username']}</span>
+                              </div>
+                            </div>""", unsafe_allow_html=True)
+                        with mc2:
+                            if st.button("✕", key=f"rm_{lista['id']}_{m['id']}",
+                                         help=f"Quitar {m['nombre']} de la lista"):
+                                conn_l6 = get_db()
+                                conn_l6.execute("DELETE FROM lista_usuarios WHERE lista_id=? AND usuario_id=?",
+                                                (lista["id"], m["id"]))
+                                conn_l6.commit(); conn_l6.close()
+                                st.session_state.msg = ("s", f"'{m['nombre']}' quitado de la lista.")
+                                st.rerun()
+                    st.markdown("</div>", unsafe_allow_html=True)
+                else:
+                    st.caption("Lista vacía. Agrega colaboradores arriba.")
+    elif listas:
+        st.info("Primero agrega colaboradores para poder asignarlos a listas.")
+
 # ---------------------------------------------------------------------------
 # MIS BONOS (usuario)
 # ---------------------------------------------------------------------------
@@ -885,7 +1016,95 @@ def view_user_bonos():
     conn  = get_db()
     bonos = conn.execute("SELECT * FROM bonos WHERE usuario_id=? ORDER BY fecha DESC",
                          (st.session_state.user_id,)).fetchall()
+
+    # Chequear bonos no vistos — solo una vez por sesión
+    if not st.session_state.notif_checked:
+        vistos = {r[0] for r in conn.execute(
+            "SELECT bono_id FROM bonos_vistos WHERE usuario_id=?",
+            (st.session_state.user_id,)).fetchall()}
+        nuevos = [dict(b) for b in bonos if b["id"] not in vistos]
+        st.session_state.notif_pending = nuevos
+        st.session_state.notif_checked = True
     conn.close()
+
+    # Popup de notificación si hay bonos nuevos
+    if st.session_state.notif_pending:
+        b0 = st.session_state.notif_pending[0]
+        extra = len(st.session_state.notif_pending) - 1
+        extra_txt = f"<br><span style='font-size:12px;color:#6B7280;'>+{extra} bono(s) más sin revisar</span>" if extra > 0 else ""
+        st.markdown(f"""
+        <style>
+        .kc-notif-overlay {{
+          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(10,22,40,0.65); z-index: 999;
+          display: flex; align-items: center; justify-content: center;
+        }}
+        .kc-notif-card {{
+          background: #FFFFFF; border-radius: 16px;
+          box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+          padding: 36px 40px 28px; width: 420px; max-width: 90vw; text-align: center;
+        }}
+        .kc-notif-ico  {{ font-size: 40px; margin-bottom: 14px; display: block; }}
+        .kc-notif-title {{
+          font-family: 'Outfit', sans-serif; font-size: 20px;
+          font-weight: 700; color: #111827; margin-bottom: 6px;
+        }}
+        .kc-notif-sub  {{ font-size: 13px; color: #6B7280; margin-bottom: 24px; }}
+        .kc-notif-row  {{
+          display: flex; gap: 14px; justify-content: center;
+          margin-bottom: 20px; flex-wrap: wrap;
+        }}
+        .kc-notif-chip {{
+          background: #F3F4F6; border-radius: 10px; padding: 12px 18px;
+          font-family: 'Outfit', sans-serif; min-width: 110px;
+        }}
+        .kc-notif-chip .cv {{ font-size: 18px; font-weight: 700; color: #111827; }}
+        .kc-notif-chip .cl {{ font-size: 11px; color: #9CA3AF; text-transform: uppercase;
+                              letter-spacing: 0.5px; margin-top: 2px; }}
+        div[data-testid="stButton"]:has(button[data-testid*="notif_ok"]) {{
+          position: fixed; bottom: calc(50vh - 100px);
+          left: 50%; transform: translateX(-50%);
+          width: 340px; z-index: 1000;
+        }}
+        div[data-testid="stButton"]:has(button[data-testid*="notif_ok"]) button {{
+          background: #1AC77C !important; color: #0A1628 !important;
+          border: none !important; font-size: 14px !important;
+          font-weight: 700 !important; padding: 12px !important;
+          border-radius: 10px !important;
+          box-shadow: 0 4px 16px rgba(26,199,124,0.35) !important;
+        }}
+        </style>
+        <div class="kc-notif-overlay">
+          <div class="kc-notif-card">
+            <span class="kc-notif-ico">🎉</span>
+            <div class="kc-notif-title">¡Tienes un nuevo bono!</div>
+            <div class="kc-notif-sub">{b0['concepto']}{extra_txt}</div>
+            <div class="kc-notif-row">
+              <div class="kc-notif-chip">
+                <div class="cv">${b0['monto']:,.2f}</div>
+                <div class="cl">Monto</div>
+              </div>
+              <div class="kc-notif-chip">
+                <div class="cv">{b0['periodo']}</div>
+                <div class="cl">Periodo</div>
+              </div>
+              <div class="kc-notif-chip">
+                <div class="cv">{b0['fecha']}</div>
+                <div class="cl">Fecha</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("Entendido ✓", key="notif_ok", use_container_width=True):
+            conn2 = get_db()
+            for b in st.session_state.notif_pending:
+                conn2.execute("INSERT OR IGNORE INTO bonos_vistos VALUES(?,?)",
+                              (st.session_state.user_id, b["id"]))
+            conn2.commit(); conn2.close()
+            st.session_state.notif_pending = []
+            st.rerun()
 
     total  = len(bonos)
     monto  = sum(b["monto"] for b in bonos)
