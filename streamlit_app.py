@@ -1,6 +1,8 @@
 import streamlit as st
 import sqlite3
 import os
+import io
+import csv
 from datetime import date
 
 # ---------------------------------------------------------------------------
@@ -491,6 +493,15 @@ def initials(name):
     parts = name.strip().split()
     return (parts[0][0] + parts[-1][0]).upper() if len(parts) > 1 else parts[0][:2].upper()
 
+def build_csv(rows, campos):
+    """rows: list of sqlite3.Row o dict; campos: [(header, key), ...]"""
+    buf = io.StringIO()
+    w   = csv.writer(buf)
+    w.writerow([c[0] for c in campos])
+    for r in rows:
+        w.writerow([r[c[1]] for c in campos])
+    return buf.getvalue().encode("utf-8-sig")  # utf-8-sig para Excel
+
 # ---------------------------------------------------------------------------
 # SIDEBAR
 # ---------------------------------------------------------------------------
@@ -738,10 +749,30 @@ def view_admin_bonos():
                     unsafe_allow_html=True)
         st.session_state.msg = None
 
-    # Title
+    # Title + exportar
     sub = f"{total_b} bonos registrados"
-    st.markdown(f'<div class="kc-page-title">Panel de Bonos</div>'
-                f'<div class="kc-page-sub">{sub}</div>', unsafe_allow_html=True)
+    title_col, export_col = st.columns([4, 1])
+    with title_col:
+        st.markdown(f'<div class="kc-page-title">Panel de Bonos</div>'
+                    f'<div class="kc-page-sub">{sub}</div>', unsafe_allow_html=True)
+    with export_col:
+        if bonos:
+            csv_data = build_csv(bonos, [
+                ("Usuario",  "nu"),
+                ("Username", "un"),
+                ("Concepto", "concepto"),
+                ("Periodo",  "periodo"),
+                ("Fecha",    "fecha"),
+                ("Monto",    "monto"),
+            ])
+            st.download_button(
+                label="⬇ Exportar CSV",
+                data=csv_data,
+                file_name="bonos_kuna.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="dl_admin",
+            )
 
     # Stat cards
     st.markdown(f"""
@@ -1127,9 +1158,27 @@ def view_user_bonos():
     ult_m  = bonos[0]["monto"] if bonos else 0
     ult_p  = bonos[0]["periodo"] if bonos else "—"
 
-    st.markdown(f'<div class="kc-page-title">Mis Bonos</div>'
-                f'<div class="kc-page-sub">{total} bonos registrados a tu nombre</div>',
-                unsafe_allow_html=True)
+    utitle_col, uexport_col = st.columns([4, 1])
+    with utitle_col:
+        st.markdown(f'<div class="kc-page-title">Mis Bonos</div>'
+                    f'<div class="kc-page-sub">{total} bonos registrados a tu nombre</div>',
+                    unsafe_allow_html=True)
+    with uexport_col:
+        if bonos:
+            csv_user = build_csv(bonos, [
+                ("Concepto", "concepto"),
+                ("Periodo",  "periodo"),
+                ("Fecha",    "fecha"),
+                ("Monto",    "monto"),
+            ])
+            st.download_button(
+                label="⬇ Exportar CSV",
+                data=csv_user,
+                file_name=f"mis_bonos_{st.session_state.username}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="dl_user",
+            )
 
     st.markdown(f"""
     <div class="kc-stat-grid" style="grid-template-columns:repeat(3,1fr)">
